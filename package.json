@@ -1,0 +1,21 @@
+{
+  "name": "zari-demo",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "db:generate": "pnpm --filter @zari/db db:generate",
+    "db:migrate": "pnpm --filter @zari/db db:migrate",
+    "db:push": "pnpm --filter @zari/db db:push",
+    "db:studio": "pnpm --filter @zari/db db:studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.10.12",
+    "typescript": "^7.0.2"
+  }
+}

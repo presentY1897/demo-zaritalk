@@ -1,0 +1,703 @@
+// zari-demo 도메인 스키마 초안
+//
+// 금액 단위: 원(KRW) Int — 단, RealTransaction(국토부 실거래가)은 API 원본 단위인 만원.
+// Int 상한(약 21억원)을 넘는 보증금은 데모 범위에서 다루지 않는다.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ===================== 계정 / 프로필 =====================
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  name      String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profiles Profile[]
+  sessions Session[]
+
+  refundReviews  RefundApplication[] @relation("RefundReviewer")
+  handledReports Report[]            @relation("ReportHandler")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// 모의 OTP: 데모에서는 실제 SMS 대신 코드가 화면/발송로그에 노출된다.
+model OtpCode {
+  id         String    @id @default(cuid())
+  phone      String
+  code       String
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone])
+}
+
+enum ProfileType {
+  LANDLORD // 임대인
+  TENANT // 세입자
+  REALTOR // 중개인
+  MASTER // 협력업체(인테리어·청소 등)
+}
+
+/// 1계정 다중 프로필. 유형별 부가정보는 *Detail 1:1 테이블에.
+model Profile {
+  id        String      @id @default(cuid())
+  userId    String
+  type      ProfileType
+  createdAt DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  realtorDetail RealtorDetail?
+  masterDetail  MasterDetail?
+
+  // TENANT
+  workplaces         Workplace[]
+  leasesAsTenant     Lease[]             @relation("TenantLeases")
+  refundApplications RefundApplication[]
+  complaints         Complaint[]
+
+  // LANDLORD
+  buildings         Building[]
+  brokerageRequests BrokerageRequest[]
+  workOrders        WorkOrder[]
+
+  // REALTOR
+  brokerageTargets BrokerageTarget[]
+
+  // MASTER
+  workOrderQuotes WorkOrderQuote[]
+
+  // 공통
+  listings          Listing[]
+  posts             Post[]
+  comments          Comment[]
+  postLikes         PostLike[]
+  reports           Report[]
+  complaintMessages ComplaintMessage[]
+  transactionAlerts TransactionAlert[]
+
+  @@unique([userId, type])
+}
+
+/// 중개인 부가정보: 활동지역(사무소 좌표 + 반경)으로 공실 중개 요청을 매칭받는다.
+model RealtorDetail {
+  profileId  String  @id
+  officeName String
+  licenseNo  String?
+  address    String
+  lat        Float
+  lng        Float
+  radiusKm   Float   @default(3)
+  intro      String?
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+enum MasterCategory {
+  CLEANING // 청소
+  INTERIOR // 인테리어
+  REPAIR // 수리/설비
+  ETC
+}
+
+/// 마스터(협력업체) 부가정보: 업종 + 활동지역으로 작업 의뢰를 매칭받는다.
+model MasterDetail {
+  profileId   String           @id
+  companyName String
+  categories  MasterCategory[]
+  address     String
+  lat         Float
+  lng         Float
+  radiusKm    Float            @default(5)
+  intro       String?
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+/// 세입자의 근무지(통근시간 계산 기준점). 여러 개 등록 가능.
+model Workplace {
+  id              String   @id @default(cuid())
+  tenantProfileId String
+  label           String // 예: "회사", "본가"
+  address         String
+  lat             Float
+  lng             Float
+  createdAt       DateTime @default(now())
+
+  tenantProfile Profile        @relation(fields: [tenantProfileId], references: [id], onDelete: Cascade)
+  commuteCaches CommuteCache[]
+}
+
+// ===================== 건물 / 호실 / 계약 =====================
+
+model Building {
+  id             String   @id @default(cuid())
+  ownerProfileId String // LANDLORD 프로필
+  name           String
+  address        String
+  roadAddress    String?
+  lat            Float
+  lng            Float
+  note           String?
+  createdAt      DateTime @default(now())
+
+  ownerProfile Profile     @relation(fields: [ownerProfileId], references: [id])
+  units        Unit[]
+  workOrders   WorkOrder[]
+}
+
+model Unit {
+  id         String   @id @default(cuid())
+  buildingId String
+  label      String // 예: "302호"
+  floor      Int?
+  areaM2     Float?
+  rooms      Int?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  building          Building           @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  leases            Lease[]
+  listings          Listing[]
+  brokerageRequests BrokerageRequest[]
+  commuteCaches     CommuteCache[]
+  workOrders        WorkOrder[]
+
+  @@unique([buildingId, label])
+}
+
+enum LeaseStatus {
+  PENDING_TENANT // 세입자 미연결(전화번호 매칭 대기)
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+/// 임대차 계약. 세입자는 가입 후 전화번호 매칭 → 수락으로 연결된다.
+model Lease {
+  id              String      @id @default(cuid())
+  unitId          String
+  tenantProfileId String? // 연결 전 null
+  tenantName      String
+  tenantPhone     String
+  deposit         Int // 보증금(원)
+  monthlyRent     Int // 월세(원). 전세면 0
+  maintenanceFee  Int         @default(0) // 관리비(원)
+  paymentDay      Int // 매월 납부일(1~31, 말일 보정은 앱 로직)
+  startDate       DateTime    @db.Date
+  endDate         DateTime    @db.Date
+  lateFeeRatePct  Float? // 월 연체이율(%). null이면 연체료 없음
+  status          LeaseStatus @default(PENDING_TENANT)
+  tenantAcceptedAt DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  unit          Unit                @relation(fields: [unitId], references: [id])
+  tenantProfile Profile?            @relation("TenantLeases", fields: [tenantProfileId], references: [id])
+  charges       RentCharge[]
+  messageLogs   MessageLog[]
+  complaints    Complaint[]
+  refunds       RefundApplication[]
+
+  @@index([tenantPhone])
+  @@index([tenantProfileId])
+}
+
+// ===================== 수납 원장 =====================
+
+enum ChargeStatus {
+  SCHEDULED // 납부일 도래 전
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+/// 월 단위 청구. 부분납부 누적(paidAmount)과 미납 이월(carriedOverAmount), 연체료를 지원한다.
+model RentCharge {
+  id                String       @id @default(cuid())
+  leaseId           String
+  year              Int
+  month             Int // 1~12
+  dueDate           DateTime     @db.Date
+  rentAmount        Int
+  maintenanceAmount Int          @default(0)
+  carriedOverAmount Int          @default(0) // 전월 미납 이월분
+  lateFeeAmount     Int          @default(0)
+  totalDue          Int // rent + maintenance + carriedOver + lateFee (저장 시 계산)
+  paidAmount        Int          @default(0) // payments 합계 비정규화
+  status            ChargeStatus @default(SCHEDULED)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  lease       Lease         @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  payments    RentPayment[]
+  tossPayments TossPayment[]
+  messageLogs MessageLog[]
+
+  @@unique([leaseId, year, month])
+  @@index([status, dueDate])
+}
+
+enum PaymentMethod {
+  MANUAL_CHECK // 임대인이 "받음" 수동 체크
+  VIRTUAL_TRANSFER // 데모용 가상 입금 시뮬레이션
+  CARD // 자리페이(토스 테스트모드)
+}
+
+model RentPayment {
+  id            String        @id @default(cuid())
+  chargeId      String
+  amount        Int
+  method        PaymentMethod
+  paidAt        DateTime      @default(now())
+  memo          String?
+  tossPaymentId String?       @unique
+
+  charge      RentCharge   @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  tossPayment TossPayment? @relation(fields: [tossPaymentId], references: [id])
+}
+
+enum TossPaymentStatus {
+  READY
+  DONE
+  CANCELED
+  FAILED
+}
+
+/// 토스페이먼츠 테스트모드 결제 트랜잭션.
+model TossPayment {
+  id         String            @id @default(cuid())
+  chargeId   String
+  orderId    String            @unique
+  paymentKey String?           @unique
+  amount     Int
+  status     TossPaymentStatus @default(READY)
+  raw        Json?
+  approvedAt DateTime?
+  createdAt  DateTime          @default(now())
+
+  charge      RentCharge   @relation(fields: [chargeId], references: [id])
+  rentPayment RentPayment?
+}
+
+// ===================== 고지서 / 발송 로그 (알림톡 시뮬레이터) =====================
+
+enum MessageKind {
+  RENT_NOTICE // 월세 고지서
+  OVERDUE_NOTICE // 연체 알림
+  CONTRACT_EXPIRY // 계약 만기 임박
+  BROKERAGE_REQUEST // 중개 요청
+  WORK_ORDER_REQUEST // 작업 의뢰
+  OTP
+  ETC
+}
+
+/// 실제 알림톡 대신 쓰는 발송 로그. token이 있으면 미가입자도 여는 공개 고지서 페이지가 생성된다.
+model MessageLog {
+  id        String      @id @default(cuid())
+  kind      MessageKind
+  toPhone   String
+  title     String
+  body      String
+  token     String?     @unique // 공개 고지서 페이지용
+  leaseId   String?
+  chargeId  String?
+  sentAt    DateTime    @default(now())
+  openedAt  DateTime?
+
+  lease  Lease?      @relation(fields: [leaseId], references: [id])
+  charge RentCharge? @relation(fields: [chargeId], references: [id])
+
+  @@index([toPhone, sentAt])
+}
+
+// ===================== 매물 / 공실 중개 =====================
+
+enum DealType {
+  JEONSE // 전세
+  WOLSE // 월세
+}
+
+enum ListingStatus {
+  OPEN
+  RESERVED
+  CLOSED
+}
+
+model Listing {
+  id                String        @id @default(cuid())
+  unitId            String
+  listedByProfileId String // 임대인 또는 수락한 중개인
+  dealType          DealType
+  deposit           Int
+  monthlyRent       Int           @default(0)
+  description       String?
+  photos            Json? // 이미지 URL 배열
+  availableFrom     DateTime?     @db.Date
+  status            ListingStatus @default(OPEN)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  unit            Unit    @relation(fields: [unitId], references: [id])
+  listedByProfile Profile @relation(fields: [listedByProfileId], references: [id])
+
+  @@index([status, dealType])
+}
+
+enum BrokerageRequestStatus {
+  OPEN
+  MATCHED
+  CLOSED
+}
+
+/// 임대인의 공실 중개 요청: 반경 내 중개인 최대 20명에게 거리순 발송.
+model BrokerageRequest {
+  id                String                 @id @default(cuid())
+  unitId            String
+  landlordProfileId String
+  message           String?
+  status            BrokerageRequestStatus @default(OPEN)
+  createdAt         DateTime               @default(now())
+
+  unit            Unit              @relation(fields: [unitId], references: [id])
+  landlordProfile Profile           @relation(fields: [landlordProfileId], references: [id])
+  targets         BrokerageTarget[]
+}
+
+enum BrokerageTargetStatus {
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+}
+
+model BrokerageTarget {
+  id               String                @id @default(cuid())
+  requestId        String
+  realtorProfileId String
+  distanceKm       Float
+  status           BrokerageTargetStatus @default(SENT)
+  respondedAt      DateTime?
+
+  request        BrokerageRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  realtorProfile Profile          @relation(fields: [realtorProfileId], references: [id])
+
+  @@unique([requestId, realtorProfileId])
+}
+
+// ===================== 통근시간 캐시 =====================
+
+/// (호실, 근무지) 쌍 단위 통근시간 캐시. 상세에서 온디맨드 조회 후 목록 배지에 재사용.
+model CommuteCache {
+  id             String   @id @default(cuid())
+  unitId         String
+  workplaceId    String
+  transitMinutes Int?
+  transitDetail  Json? // ODsay 경로 요약(환승 등)
+  drivingMinutes Int?
+  drivingDetail  Json? // 카카오모빌리티 경로 요약
+  fetchedAt      DateTime @default(now())
+
+  unit      Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  workplace Workplace @relation(fields: [workplaceId], references: [id], onDelete: Cascade)
+
+  @@unique([unitId, workplaceId])
+}
+
+// ===================== 월세 환급 =====================
+
+enum RefundStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWING
+  NEED_MORE_DOCS
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+/// 세액공제 환급 신청. 백오피스 심사 큐에서 처리된다.
+model RefundApplication {
+  id              String       @id @default(cuid())
+  tenantProfileId String
+  leaseId         String?
+  annualIncome    Int // 연 총급여(원) — 공제율 산정 기준
+  startYear       Int // 소급 시작 연도
+  endYear         Int
+  expectedAmount  Int // 계산기 산출 예상 환급액(원)
+  documents       Json? // 업로드 서류 메타 배열
+  status          RefundStatus @default(DRAFT)
+  reviewNote      String?
+  reviewedById    String? // 어드민 User
+  submittedAt     DateTime?
+  decidedAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  tenantProfile Profile @relation(fields: [tenantProfileId], references: [id])
+  lease         Lease?  @relation(fields: [leaseId], references: [id])
+  reviewedBy    User?   @relation("RefundReviewer", fields: [reviewedById], references: [id])
+
+  @@index([status])
+}
+
+// ===================== 민원 / 작업 의뢰 (마스터 매칭) =====================
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+/// 세입자 민원. 임대인이 확인 후 작업 의뢰(WorkOrder)로 전환할 수 있다.
+model Complaint {
+  id              String          @id @default(cuid())
+  leaseId         String
+  tenantProfileId String
+  title           String
+  body            String
+  photos          Json?
+  status          ComplaintStatus @default(OPEN)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  lease         Lease              @relation(fields: [leaseId], references: [id])
+  tenantProfile Profile            @relation(fields: [tenantProfileId], references: [id])
+  messages      ComplaintMessage[]
+  workOrder     WorkOrder?
+}
+
+model ComplaintMessage {
+  id              String   @id @default(cuid())
+  complaintId     String
+  authorProfileId String
+  body            String
+  createdAt       DateTime @default(now())
+
+  complaint     Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  authorProfile Profile   @relation(fields: [authorProfileId], references: [id])
+}
+
+enum WorkOrderStatus {
+  REQUESTED
+  QUOTED
+  ASSIGNED
+  DONE
+  CANCELLED
+}
+
+/// 임대인의 작업 의뢰: 업종+반경 매칭으로 마스터들에게 전달되고, 견적 제안을 받는다.
+model WorkOrder {
+  id                 String          @id @default(cuid())
+  requesterProfileId String // LANDLORD 프로필
+  buildingId         String?
+  unitId             String?
+  complaintId        String?         @unique // 민원에서 전환된 경우
+  category           MasterCategory
+  description        String
+  desiredDate        DateTime?       @db.Date
+  status             WorkOrderStatus @default(REQUESTED)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  requesterProfile Profile          @relation(fields: [requesterProfileId], references: [id])
+  building         Building?        @relation(fields: [buildingId], references: [id])
+  unit             Unit?            @relation(fields: [unitId], references: [id])
+  complaint        Complaint?       @relation(fields: [complaintId], references: [id])
+  quotes           WorkOrderQuote[]
+}
+
+enum QuoteStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+}
+
+model WorkOrderQuote {
+  id              String      @id @default(cuid())
+  workOrderId     String
+  masterProfileId String
+  amount          Int
+  message         String?
+  status          QuoteStatus @default(PROPOSED)
+  createdAt       DateTime    @default(now())
+
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  masterProfile Profile   @relation(fields: [masterProfileId], references: [id])
+
+  @@unique([workOrderId, masterProfileId])
+}
+
+// ===================== 커뮤니티 =====================
+
+/// 지역별 보드: regionCode는 법정동 시군구 코드(5자리), regionName은 표시명.
+model Post {
+  id              String    @id @default(cuid())
+  authorProfileId String
+  regionCode      String
+  regionName      String
+  title           String
+  body            String
+  viewCount       Int       @default(0)
+  likeCount       Int       @default(0) // PostLike 비정규화
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime? // 모더레이션 소프트 삭제
+
+  authorProfile Profile    @relation(fields: [authorProfileId], references: [id])
+  comments      Comment[]
+  likes         PostLike[]
+  reports       Report[]
+
+  @@index([regionCode, createdAt])
+  @@index([regionCode, likeCount])
+}
+
+model Comment {
+  id              String    @id @default(cuid())
+  postId          String
+  authorProfileId String
+  body            String
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
+
+  post          Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorProfile Profile  @relation(fields: [authorProfileId], references: [id])
+  reports       Report[]
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  profileId String
+  createdAt DateTime @default(now())
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id])
+
+  @@unique([postId, profileId])
+}
+
+enum ReportTargetType {
+  POST
+  COMMENT
+}
+
+enum ReportStatus {
+  OPEN
+  ACTIONED // 블라인드/삭제 처리
+  DISMISSED
+}
+
+model Report {
+  id                String           @id @default(cuid())
+  targetType        ReportTargetType
+  postId            String?
+  commentId         String?
+  reporterProfileId String
+  reason            String
+  status            ReportStatus     @default(OPEN)
+  handledById       String? // 어드민 User
+  handledAt         DateTime?
+  createdAt         DateTime         @default(now())
+
+  post            Post?    @relation(fields: [postId], references: [id])
+  comment         Comment? @relation(fields: [commentId], references: [id])
+  reporterProfile Profile  @relation(fields: [reporterProfileId], references: [id])
+  handledBy       User?    @relation("ReportHandler", fields: [handledById], references: [id])
+
+  @@index([status])
+}
+
+// ===================== 실거래가 (국토부) =====================
+
+enum RealDealType {
+  SALE // 매매
+  JEONSE
+  WOLSE
+}
+
+/// 국토부 실거래가 수집분. 금액은 API 원본 단위인 만원.
+model RealTransaction {
+  id          String       @id @default(cuid())
+  lawdCd      String // 법정동 시군구 코드(5자리)
+  dealType    RealDealType
+  aptName     String
+  areaM2      Float
+  floor       Int?
+  dealDate    DateTime     @db.Date
+  price       Int? // 매매가(만원)
+  deposit     Int? // 보증금(만원)
+  monthlyRent Int? // 월세(만원)
+  builtYear   Int?
+  raw         Json?
+  fetchedAt   DateTime     @default(now())
+
+  @@index([lawdCd, dealType, dealDate])
+}
+
+/// 실거래가 알림 구독.
+model TransactionAlert {
+  id        String        @id @default(cuid())
+  profileId String
+  lawdCd    String
+  aptName   String?
+  dealType  RealDealType?
+  createdAt DateTime      @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, lawdCd, aptName, dealType])
+}
+
+// ===================== 그로스 (이벤트 트래킹 / A/B) =====================
+
+/// 자체 이벤트 트래킹. anonId는 쿠키 기반 익명 식별자.
+model TrackingEvent {
+  id        String   @id @default(cuid())
+  anonId    String
+  userId    String?
+  name      String // 예: "page_view", "signup_cta_click"
+  props     Json?
+  path      String?
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([anonId, createdAt])
+}
+
+/// A/B 실험 배정. 익명 단위로 고정 배정한다.
+model AbAssignment {
+  id            String   @id @default(cuid())
+  anonId        String
+  experimentKey String
+  variant       String
+  userId        String?
+  assignedAt    DateTime @default(now())
+
+  @@unique([anonId, experimentKey])
+}

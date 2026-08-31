@@ -1,0 +1,4 @@
+{
+  "extends": "@zari/config/tsconfig/base.json",
+  "include": ["src"]
+}

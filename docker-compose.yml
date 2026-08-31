@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: zari-demo-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: zari
+      POSTGRES_PASSWORD: zari
+      POSTGRES_DB: zari
+    volumes:
+      - zari-pg:/var/lib/postgresql/data
+
+volumes:
+  zari-pg:

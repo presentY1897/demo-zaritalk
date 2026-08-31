@@ -1,0 +1,30 @@
+{
+  "name": "@zari/admin",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "panda": "panda codegen",
+    "dev": "panda codegen && next dev -p 3001",
+    "build": "panda codegen && next build",
+    "start": "next start -p 3001",
+    "typecheck": "panda codegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.102.8",
+    "@zari/db": "workspace:^",
+    "@zari/ui": "workspace:^",
+    "jotai": "^2.20.3",
+    "next": "^16.3.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@pandacss/dev": "^1.12.0",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@zari/config": "workspace:^",
+    "typescript": "^7.0.2"
+  }
+}
