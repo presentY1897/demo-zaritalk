@@ -61,6 +61,14 @@ export const TRACK_EVENTS = {
   LANDLORD_OVERDUE_CLICK: "landlord_overdue_click",
   /** 홈의 만기 임박 계약 행 클릭 — props: `{ leaseId, daysLeft }` (T1.9) */
   LANDLORD_EXPIRY_CLICK: "landlord_expiry_click",
+  /** 세입자 계약 수락 화면 노출 — props: `{ pendingCount }` (T1.3) */
+  TENANT_LEASE_ACCEPT_VIEW: "tenant_lease_accept_view",
+  /** 대기 계약 수락 성공 — props: `{ leaseId, chargeCreated }` (T1.3) */
+  TENANT_LEASE_ACCEPT_COMPLETE: "tenant_lease_accept_complete",
+  /** 대기 계약 거절 성공 — props: `{ leaseId, removedCharges }` (T1.3) */
+  TENANT_LEASE_DECLINE_COMPLETE: "tenant_lease_decline_complete",
+  /** 세입자 홈 노출 — props: `{ leaseCount, pendingCount, outstanding }` (T1.3) */
+  TENANT_HOME_VIEW: "tenant_home_view",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;

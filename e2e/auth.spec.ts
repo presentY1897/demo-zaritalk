@@ -63,11 +63,12 @@ test("E2E② 신규 번호 OTP 가입 → 온보딩 → 세입자 프로필 → 
   await page.getByTestId("profile-type-TENANT").click();
   await page.getByTestId("onboarding-submit").click();
 
-  // ④ 내 번호로 등록된 대기 계약이 있으므로 수락 화면(T1.3 플레이스홀더)으로
-  await expect(page).toHaveURL("/tenant/leases/pending");
+  // ④ 내 번호로 등록된 대기 계약이 있으므로 수락 화면(T1.3)으로
+  //    T1.3 이 `/tenant/leases/pending` 플레이스홀더를 정식 경로 `/tenant/leases/accept` 로 통일했다
+  await expect(page).toHaveURL("/tenant/leases/accept");
   await expect(page.getByRole("heading", { name: "세입자 계약 수락" })).toBeVisible();
   await expect(page.getByText("행당해피빌 202호")).toBeVisible();
-  await expect(page.getByTestId("t13-placeholder")).toContainText("T1.3");
+  await expect(page.getByTestId("pending-lease")).toBeVisible();
 
   // 가입·세션이 실제로 끝났는지 확인
   const me = await page.request.get("/api/me");

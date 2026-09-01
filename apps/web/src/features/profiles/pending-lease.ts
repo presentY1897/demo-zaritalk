@@ -9,10 +9,22 @@ import { LeaseStatus, prisma, ProfileType } from "@zari/db";
 
 /** 홈 */
 export const HOME_PATH = "/";
-/** 세입자 계약 수락 화면 — 지금은 T1.3 플레이스홀더 페이지가 응답한다 */
-export const PENDING_LEASE_PATH = "/tenant/leases/pending";
+/**
+ * 세입자 계약 수락 화면 (T1.3).
+ *
+ * T0.4 는 플레이스홀더 경로 `/tenant/leases/pending` 을 썼지만, task 문서가 지정한 정식 경로는
+ * `/tenant/leases/accept` 다. T1.3 이 화면을 만들면서 **정식 경로 하나로 통일**했고,
+ * 옛 경로는 여기로 리다이렉트만 한다(`app/(app)/(protected)/tenant/leases/pending/page.tsx`).
+ * 경로 문자열은 이 상수 한 곳에서만 관리한다.
+ */
+export const PENDING_LEASE_PATH = "/tenant/leases/accept";
 
-/** 내 번호로 등록된 수락 대기 계약(건물·호실 포함). 오래된 순. */
+/**
+ * 내 번호로 등록된 수락 대기 계약(건물·호실 포함). 오래된 순.
+ *
+ * 화면용 DTO 가 필요하면 T1.3 의 `features/tenant/queries.ts` `listPendingLeases` 를 쓴다 —
+ * 여기 있는 것은 리다이렉트 판정과 존재 확인용 원본 조회다.
+ */
 export function findPendingLeasesForPhone(phone: string) {
   return prisma.lease.findMany({
     where: { tenantPhone: phone, status: LeaseStatus.PENDING_TENANT },
