@@ -16,7 +16,7 @@
 | [T0.4](./tasks/t0.4-login-onboarding.md) | 로그인·온보딩 화면 | ⬜ |
 | [T0.5](./tasks/t0.5-shell-profile.md) | 웹 셸 + 프로필 전환 | ⬜ |
 | [T0.6](./tasks/t0.6-ui-tokens.md) | packages/ui 디자인 토큰 | ✅ |
-| [T0.7](./tasks/t0.7-tracking.md) | 트래킹 코어 | ⬜ |
+| [T0.7](./tasks/t0.7-tracking.md) | 트래킹 코어 | ✅ |
 
 **Phase 완료 조건**
 - [ ] 전 task ✅

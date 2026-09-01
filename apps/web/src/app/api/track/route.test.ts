@@ -33,16 +33,6 @@ import { POST } from "./route";
 
 const ANON_ID = createAnonId();
 
-/**
- * DB를 쓰는 suite 에 재시도를 건다.
- *
- * `pnpm test` 는 web·packages 프로젝트를 **병렬로** 돌리는데 두 프로젝트가 같은 테스트 DB를 본다.
- * packages 쪽 `testing.test.ts` 의 `resetDb()`(TRUNCATE)가 이 파일의 테스트와 겹치면 방금 넣은
- * 행이 지워져 엉뚱하게 실패한다. 근본 해결은 루트 `vitest.config.ts` 에 `fileParallelism: false`
- * (또는 프로젝트별 테스트 DB 분리)를 넣는 것인데 그 파일은 이 task 소유가 아니라 재시도로 막아둔다.
- */
-const DB_SUITE = { retry: 3 } as const;
-
 function trackRequest(body: unknown, options?: { cookie?: string; raw?: string }): Request {
   return new Request("http://localhost:3000/api/track", {
     method: "POST",
@@ -60,7 +50,7 @@ beforeEach(async () => {
   cookieJar.clear();
 });
 
-describe("배열 수집", DB_SUITE, () => {
+describe("배열 수집", () => {
   test("배열로 보낸 이벤트가 하나도 빠짐없이 저장된다", async () => {
     const response = await POST(
       trackRequest(
@@ -109,7 +99,7 @@ describe("배열 수집", DB_SUITE, () => {
   });
 });
 
-describe("스키마 불일치", DB_SUITE, () => {
+describe("스키마 불일치", () => {
   const cases: { label: string; body: unknown }[] = [
     { label: "name 이 없다", body: { path: "/" } },
     { label: "이름 규약을 어겼다(카멜케이스)", body: { name: "pageView" } },
@@ -138,7 +128,7 @@ describe("스키마 불일치", DB_SUITE, () => {
   });
 });
 
-describe("anonId 해석", DB_SUITE, () => {
+describe("anonId 해석", () => {
   test("요청에 anonId 가 하나도 없으면 서버가 발급해 저장하고 응답 쿠키로 내려준다", async () => {
     const response = await POST(trackRequest({ name: TRACK_EVENTS.PAGE_VIEW, path: "/" }));
 
@@ -179,7 +169,7 @@ describe("anonId 해석", DB_SUITE, () => {
   });
 });
 
-describe("로그인 연결", DB_SUITE, () => {
+describe("로그인 연결", () => {
   test("로그인 상태면 userId 를 붙여 저장한다", async () => {
     const user = await prisma.user.create({ data: { phone: "01011112222", name: "트래킹" } });
     const token = "test-session-token";
