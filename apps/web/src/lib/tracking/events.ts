@@ -43,6 +43,8 @@ export const TRACK_EVENTS = {
   BUILDING_CREATE_COMPLETE: "building_create_complete",
   /** 호실 등록 성공 — props: `{ buildingId }` (T1.1) */
   UNIT_CREATE_COMPLETE: "unit_create_complete",
+  /** 임대장부에서 연도·건물 필터를 바꿨을 때 — props: `{ year, buildingId }` (T1.6) */
+  LEDGER_FILTER_CHANGE: "ledger_filter_change",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;

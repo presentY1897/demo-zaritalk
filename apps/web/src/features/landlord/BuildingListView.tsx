@@ -5,7 +5,7 @@
  *
  * 첫 데이터는 서버 컴포넌트(page.tsx)가 넘겨주고, 등록 후에는 Tanstack Query 무효화로 다시 읽는다.
  */
-import { Badge, Button, Card, Sheet, useTrack } from "@zari/ui";
+import { Badge, Button, buttonRecipe, Card, Sheet, useTrack } from "@zari/ui";
 import Link from "next/link";
 import { useState } from "react";
 import { css } from "styled-system/css";
@@ -30,6 +30,7 @@ const headerStyle = css({
   gap: "3",
 });
 const titleStyle = css({ textStyle: "headline", color: "text" });
+const actionsStyle = css({ display: "flex", alignItems: "center", gap: "2" });
 const listStyle = css({ display: "flex", flexDirection: "column", gap: "3" });
 const cardLinkStyle = css({ textDecoration: "none", color: "inherit", display: "block" });
 const nameStyle = css({ textStyle: "title", color: "text" });
@@ -74,9 +75,19 @@ export function BuildingListView({ initialBuildings }: { initialBuildings: Build
             건물 {buildings.length} · 호실 {totalUnits} · 공실 {totalVacant}
           </p>
         </div>
-        <Button size="sm" onClick={() => setOpen(true)} data-testid="building-add">
-          건물 추가
-        </Button>
+        <div className={actionsStyle}>
+          {/* 임대장부(T1.6) 진입점 — T0.5 탭 배정표에 장부 탭이 없어 자산 화면에서 들어간다 */}
+          <Link
+            href="/landlord/ledger"
+            className={buttonRecipe({ variant: "secondary", size: "sm" })}
+            data-testid="ledger-link"
+          >
+            장부
+          </Link>
+          <Button size="sm" onClick={() => setOpen(true)} data-testid="building-add">
+            건물 추가
+          </Button>
+        </div>
       </div>
 
       {buildings.length === 0 ? (
