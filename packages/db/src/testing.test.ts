@@ -18,6 +18,6 @@ test("resetDb 는 테스트 DB의 데이터를 모두 지운다", async () => {
 test("assertTestDatabase 는 데모 DB를 가리키면 막는다", () => {
   const original = process.env.DATABASE_URL;
   process.env.DATABASE_URL = "postgresql://zari:zari@localhost:5432/zari";
-  expect(() => assertTestDatabase()).toThrow(/_test/);
+  expect(() => assertTestDatabase()).toThrow(/test 가 들어간 DB/);
   process.env.DATABASE_URL = original;
 });

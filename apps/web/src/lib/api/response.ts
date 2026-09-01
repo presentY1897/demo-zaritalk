@@ -13,7 +13,12 @@ export type ApiErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "CONFLICT"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  // 인증(T0.3) — 클라이언트가 문구를 갈아 끼울 수 있게 사유별로 코드를 나눈다
+  | "OTP_INVALID"
+  | "OTP_EXPIRED"
+  | "OTP_ALREADY_USED"
+  | "SIGNUP_TICKET_INVALID";
 
 export type ApiErrorBody = {
   error: { code: ApiErrorCode; message: string; details?: unknown };
@@ -26,6 +31,10 @@ const STATUS: Record<ApiErrorCode, number> = {
   NOT_FOUND: 404,
   CONFLICT: 409,
   INTERNAL_ERROR: 500,
+  OTP_INVALID: 400,
+  OTP_EXPIRED: 400,
+  OTP_ALREADY_USED: 409,
+  SIGNUP_TICKET_INVALID: 400,
 };
 
 export function ok<T>(data: T, init?: ResponseInit): Response {
