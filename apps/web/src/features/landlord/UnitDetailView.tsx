@@ -4,7 +4,7 @@
  * `/landlord/units/[id]` 화면 본체 (T1.1) — 현재 계약 카드 · 과거 이력 · 수납 요약,
  * 공실이면 「매물 등록」(T3.1)·「중개 요청」(T3.6) 진입 버튼.
  *
- * 계약 등록(T1.2)·청구 상세(T1.5)·매물 등록(T3.1) 화면은 아직 없다 — 여기서는 **진입점만** 둔다.
+ * 계약 등록·상세(T1.2)·수납(T1.5)로 넘어가는 진입점이 여기 있다. 매물 등록(T3.1) 화면은 아직 없다.
  */
 import { Badge, Button, Card, CardHeader, Sheet } from "@zari/ui";
 import Link from "next/link";
@@ -175,6 +175,17 @@ export function UnitDetailView({ initialUnit }: { initialUnit: UnitDetailDto }) 
               {formatDate(lease.startDate)} ~ {formatDate(lease.endDate)}
             </span>
           </div>
+          {/* 계약 상세·수납(T1.2·T1.5) 진입 */}
+          <div className={css({ mt: "3" })}>
+            <Button
+              fullWidth
+              variant="secondary"
+              onClick={() => router.push(`/landlord/leases/${lease.id}`)}
+              data-testid="lease-detail"
+            >
+              계약 상세·수납
+            </Button>
+          </div>
         </Card>
       ) : (
         <Card padding="md" data-testid="vacant-card">
@@ -196,6 +207,16 @@ export function UnitDetailView({ initialUnit }: { initialUnit: UnitDetailDto }) 
                 data-testid="brokerage-request"
               >
                 중개 요청
+              </Button>
+            </div>
+            <div className={css({ mt: "2" })}>
+              <Button
+                fullWidth
+                variant="secondary"
+                onClick={() => router.push(`/landlord/leases/new?unitId=${unit.id}`)}
+                data-testid="lease-create"
+              >
+                계약 등록
               </Button>
             </div>
             <p className={css({ textStyle: "caption", color: "text.muted", mt: "2" })}>
