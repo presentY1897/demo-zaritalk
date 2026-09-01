@@ -25,12 +25,22 @@ export async function resetDb(): Promise<void> {
   await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
 }
 
-/** 실수로 데모 DB를 지우는 사고 방지 — 테스트 셋업에서 호출한다. */
+/**
+ * 실수로 데모 DB를 지우는 사고 방지 — 테스트 셋업에서 호출한다.
+ * DB 이름에 `test` 토큰이 들어 있어야 통과한다(`zari_test`, `zari_test_ui`, `zari_ui_test` 모두 허용).
+ * 병렬 작업 시 워크트리마다 다른 이름을 쓰므로 접미사 고정은 두지 않는다.
+ */
 export function assertTestDatabase(): void {
   const url = process.env.DATABASE_URL ?? "";
-  if (!/_test(\?|$)/.test(url)) {
+  let dbName = "";
+  try {
+    dbName = new URL(url).pathname.slice(1);
+  } catch {
+    dbName = "";
+  }
+  if (!/(^|_)test(_|$)/.test(dbName)) {
     throw new Error(
-      `테스트는 이름이 _test 로 끝나는 DB에서만 실행한다. 현재: ${url || "(미설정)"}`,
+      `테스트는 이름에 test 가 들어간 DB에서만 실행한다. 현재: ${url || "(미설정)"}`,
     );
   }
 }

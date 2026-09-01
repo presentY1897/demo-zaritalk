@@ -10,6 +10,9 @@ const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
  */
 export default defineConfig({
   test: {
+    // 테스트 파일들이 같은 zari_test DB를 truncate 하므로 파일 병렬 실행을 끈다.
+    // (병렬로 두면 서로의 데이터를 지우고 40P01 deadlock 이 난다)
+    fileParallelism: false,
     projects: [
       {
         test: {
