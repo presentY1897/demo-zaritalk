@@ -13,6 +13,7 @@
     "db:generate": "pnpm --filter @zari/db db:generate",
     "codegen": "pnpm db:generate && pnpm --filter @zari/ui exec panda codegen && pnpm --filter @zari/web exec panda codegen && pnpm --filter @zari/admin exec panda codegen",
     "db:migrate": "pnpm --filter @zari/db db:migrate",
+    "db:deploy": "pnpm --filter @zari/db exec prisma migrate deploy",
     "db:push": "pnpm --filter @zari/db db:push",
     "db:studio": "pnpm --filter @zari/db db:studio",
     "test": "vitest run",
