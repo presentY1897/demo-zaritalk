@@ -18,3 +18,14 @@
 | `POST /api/leases/[id]/notices` | 고지서 발송 — kind·대상 청구 지정, 본문 템플릿 렌더, token 발급, MessageLog 생성. |
 | `GET /api/notices/[token]` | 공개 고지서 데이터(비로그인). 첫 조회 시 openedAt 기록 + `notice_view` 트래킹. |
 | `GET /api/landlord/messages` | 내 발송 이력. |
+
+## 완료 기준
+
+- [ ] 3종(월세/연체/만기) 발송 가능, 발송 이력에 열람 여부 표시
+- [ ] 시드 토큰 `demo-notice-hong`이 비로그인으로 열리고, 열람 후 임대인 발송 이력에 "열람" 반영
+- [ ] 공개 페이지에 가입 CTA·OG 메타 포함, `notice_view` 트래킹 수집
+
+## 테스트
+
+- **최소(단위·API)**: kind별 템플릿 본문 스냅샷 · token 유니크 · 잘못된 토큰 404 · openedAt 최초 1회만 기록
+- **통합(E2E — 그로스 핵심 여정)**: 임대인 고지서 발송 → 비로그인 브라우저로 공개 페이지 열람 → CTA 클릭 → 가입 → 대기 계약 수락. `notice_view → notice_cta_click → signup_*` 이벤트가 순서대로 쌓임

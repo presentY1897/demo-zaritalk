@@ -13,3 +13,14 @@
 |---|---|
 | `POST /api/track` | 이벤트 수집(배열 허용, sendBeacon 대응, 로그인 시 userId 연결). |
 | `GET /api/ab/[experimentKey]` | 변형 배정 조회/생성(anonId 고정 배정). |
+
+## 완료 기준
+
+- [ ] 아무 페이지나 이동하면 TrackingEvent에 `page_view` 적재, 로그인 시 userId 연결
+- [ ] A/B: 같은 브라우저는 항상 같은 변형, 변형별 노출·클릭 이벤트 구분 수집
+- [ ] SEO: 공개 페이지 3종(고지서·매물·계산기) Lighthouse SEO 90+, sitemap·robots 제공
+
+## 테스트
+
+- **최소(단위·API)**: track — 배열 수집·스키마 불일치 400·anonId 없는 요청 처리 · A/B(핵심) — ①해시 배정 결정성 ②대량 샘플 분포 약 50:50 ③로그인 후 userId 연결 유지 · sitemap에 공개 라우트 포함
+- **통합(E2E)**: ①로그인 여정 후 `page_view`+`signup_*` 이벤트 존재 ②신규 브라우저 컨텍스트 2개에서 각자 변형 고정 확인

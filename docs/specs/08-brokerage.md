@@ -27,3 +27,13 @@
 | `GET /api/brokerage-requests/preview?unitId=` | 발송 전 대상 중개인 수·목록 미리보기. |
 | `GET /api/realtor/inbox` | 내가 받은 요청(거리 포함). |
 | `POST /api/brokerage-targets/[id]/respond` | 수락/거절(respondedAt 기록). |
+
+## 완료 기준
+
+- [ ] 시드 중개인(왕십리, 3km)이 행당해피빌 요청 대상에 포함, 발송 전 미리보기 → 발송 → 현황 표시
+- [ ] 중개인 열람 시 VIEWED, 수락 시 임대인 알림 + 매물 등록 권한, 첫 수락 시 요청 MATCHED
+
+## 테스트
+
+- **최소(단위·API — 매칭 핵심)**: ①하버사인 거리 계산 ②반경 밖 제외 ③21명 이상 시 거리순 20명 컷 ④요청 대상 유니크 ⑤respond 상태 전이 — SENT→VIEWED→ACCEPTED/DECLINED만 허용, 타 중개인 타겟 403
+- **통합(E2E)**: 임대인 공실 중개 요청 → 중개인 수신함 → 수락 → 해당 호실 매물 등록 → `/search` 노출
