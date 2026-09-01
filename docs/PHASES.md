@@ -10,7 +10,7 @@
 | task | 내용 | 상태 |
 |---|---|---|
 | [T0.0](./tasks/t0.0-db-seed.md) | DB 마이그레이션·데모 시드 (a29e42c) | ✅ |
-| [T0.1](./tasks/t0.1-deploy.md) | 배포 파이프라인 | 🔨 |
+| [T0.1](./tasks/t0.1-deploy.md) | 배포 파이프라인 | ✅ |
 | [T0.2](./tasks/t0.2-test-infra.md) | 테스트 인프라 | ✅ |
 | [T0.3](./tasks/t0.3-auth-api.md) | 인증 API | ✅ |
 | [T0.4](./tasks/t0.4-login-onboarding.md) | 로그인·온보딩 화면 | ✅ |
@@ -19,9 +19,11 @@
 | [T0.7](./tasks/t0.7-tracking.md) | 트래킹 코어 | ✅ |
 
 **Phase 완료 조건**
-- [ ] 전 task ✅ — T0.1(배포 연결)만 남음, 나머지 7개 완료
+- [x] 전 task ✅
 - [x] E2E: 원클릭 로그인 4종 + 신규 가입 여정 green (`e2e/auth.spec.ts`, 전체 10 spec green)
-- [ ] 라이브 URL에서 데모 로그인 가능 — T0.1 대기
+- [x] 라이브 URL에서 데모 로그인 가능 — https://demo-zaritalk.vercel.app (어드민 https://demo-zaritalk-admin.vercel.app)
+
+**Phase 0 완료 (2026-09-01).**
 
 ## Phase 1 — 임대인 코어 (자산·계약·수납·고지)
 

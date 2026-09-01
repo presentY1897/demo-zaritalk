@@ -18,7 +18,7 @@
 빌드해 **`prisma generate`(@zari/db) 와 `panda codegen`(@zari/ui)** 이 함께 돌아간다 —
 둘 다 gitignore 된 코드젠 산출물이라 이 단계가 빠지면 빌드가 깨진다(CI에서 같은 이유로 한 번 깨졌다).
 
-## 1단계 — Neon Postgres (사용자)
+## 1단계 — Neon Postgres (사용자) ✅ 완료
 
 1. https://neon.tech 가입 → **New Project** (리전은 아무거나, 가까운 곳 권장)
 2. 생성 후 **Connection string** 화면에서 **두 가지**를 복사한다:
@@ -52,7 +52,7 @@ DATABASE_URL="$NEON_DIRECT_URL" pnpm db:seed     # 데모 시드
 > 시드의 일괄 삭제는 29개 `deleteMany` 를 한 트랜잭션에 묶는데, 원격 DB는 왕복 지연이 커서
 > 기본 5초 제한(P2028)에 걸린다. `{ timeout: 120_000 }` 으로 올려 뒀다.
 
-## 3단계 — Vercel 프로젝트 2개 (사용자 + Claude)
+## 3단계 — Vercel 프로젝트 2개 (사용자 + Claude) ✅ 완료
 
 각 앱마다 **Add New → Project → 이 레포 선택** 을 반복한다. 즉, 같은 레포로 프로젝트를 두 개 만든다.
 
@@ -68,6 +68,12 @@ DATABASE_URL="$NEON_DIRECT_URL" pnpm db:seed     # 데모 시드
 | 이름 | 값 |
 |---|---|
 | `DATABASE_URL` | `.env.neon` 의 **`NEON_POOLED_URL`** (pooler 붙은 쪽, `sslmode=verify-full`) |
+
+> **Value 칸에는 순수 연결 문자열만 넣는다.** `DATABASE_URL="postgresql://…"` 처럼 키 이름이나
+> 따옴표가 같이 들어가면 pg 가 파싱에 실패하고 호스트가 `base` 로 잡혀 전부 500 이 난다.
+> `DATABASE_URL=…` 형식은 입력칸 위의 **`.env` 일괄 붙여넣기 영역** 전용이다.
+>
+> CLI 로 넣는 게 확실하다: `printf '%s' "$NEON_POOLED_URL" | vercel env add DATABASE_URL production --cwd apps/web`
 
 > 외부 API 키(카카오·ODsay·토스·공공데이터)는 해당 Phase 착수 시점에 추가한다.
 > 목록은 [`.env.example`](../.env.example) 참조.
