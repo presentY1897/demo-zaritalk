@@ -74,10 +74,28 @@ DATABASE_URL="$NEON_DIRECT_URL" pnpm db:seed     # 데모 시드
 
 ## 4단계 — 확인
 
-- `main` 에 push → Vercel 이 자동 배포
-- web 라이브 URL에서 `/login` → 원클릭 데모 로그인 4종이 동작
-- `GET /api/me` 가 비로그인 401, 로그인 후 200
-- admin 라이브 URL에서 사이드바 셸이 뜸
+`main` 에 push → Vercel 자동 배포 후:
+
+| 확인 | 기대값 |
+|---|---|
+| `GET /api/health` | `{"ok":true,"db":"up","users":5}` |
+| `GET /` | 200 |
+| `GET /api/me` (비로그인) | 401 |
+| `POST /api/auth/demo-login` `{"role":"landlord"}` | 200 + 세션 쿠키 |
+| admin `/` | 사이드바 셸 |
+
+### `/api/health` 로 원인 구분하기
+
+DB가 안 붙으면 다른 라우트는 **빈 500** 만 내서 밖에서 원인을 알 수 없다. health 는 구분해 준다:
+
+| 응답 | 뜻 | 할 일 |
+|---|---|---|
+| `{"db":"unconfigured","databaseUrlConfigured":false}` | 런타임에 `DATABASE_URL` 이 없다 | Vercel 환경변수 확인 → **저장 후 Redeploy**(기존 배포엔 반영 안 된다) |
+| `target: "(파싱 불가 …)"` | 값에 따옴표가 섞였다 | Value 에서 앞뒤 `"` 제거 |
+| `{"db":"down", "error": …}` | 붙었는데 실패 | error 메시지로 판단(호스트 오타·SSL·스키마 미적용) |
+| `{"db":"up"}` | 정상 | — |
+
+`target` 은 호스트와 DB 이름만 보여 준다 — 사용자·비밀번호는 응답에 넣지 않는다.
 
 ## 알아둘 것
 
