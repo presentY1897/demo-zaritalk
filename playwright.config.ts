@@ -27,10 +27,13 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: `pnpm --filter @zari/web exec next dev -p ${PORT}`,
+        // `next dev` 를 직접 부르면 web 의 dev 스크립트를 건너뛰어 panda codegen 이 빠진다 —
+        // 클린 체크아웃(CI)에서 styled-system 이 없으므로 여기서 함께 돌린다.
+        command: `pnpm --filter @zari/web exec panda codegen && pnpm --filter @zari/web exec next dev -p ${PORT}`,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        // CI 클린 체크아웃에서는 codegen + Turbopack 최초 컴파일까지 포함되므로 넉넉히 준다
+        timeout: 300_000,
         env: { DATABASE_URL: testDatabaseUrl },
       },
 });

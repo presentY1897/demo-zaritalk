@@ -11,6 +11,7 @@
     "build": "turbo build",
     "typecheck": "turbo typecheck && tsc --noEmit",
     "db:generate": "pnpm --filter @zari/db db:generate",
+    "codegen": "pnpm db:generate && pnpm --filter @zari/ui exec panda codegen && pnpm --filter @zari/web exec panda codegen && pnpm --filter @zari/admin exec panda codegen",
     "db:migrate": "pnpm --filter @zari/db db:migrate",
     "db:push": "pnpm --filter @zari/db db:push",
     "db:studio": "pnpm --filter @zari/db db:studio",
