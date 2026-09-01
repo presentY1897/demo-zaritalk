@@ -36,14 +36,17 @@ const SESSION_STORAGE_KEY = "zari_track_session";
 
 /**
  * 코드베이스가 실제로 쓰는 이벤트 이름.
- * `page_view` 는 자동 수집, 나머지 넷은 D2 의 A/B 퍼널이다.
+ * `page_view` 는 자동 수집, 그다음 넷은 D2 의 A/B 퍼널이다.
+ * 새 이벤트는 여기와 앱의 `TRACK_EVENTS` 에 함께 추가한다.
  */
 export type KnownTrackEventName =
   | "page_view"
   | "notice_view"
   | "notice_cta_click"
   | "signup_start"
-  | "signup_complete";
+  | "signup_complete"
+  | "profile_switch_open"
+  | "profile_switch_complete";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

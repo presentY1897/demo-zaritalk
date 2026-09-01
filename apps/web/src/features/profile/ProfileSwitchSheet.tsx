@@ -15,8 +15,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { css } from "styled-system/css";
+import { TRACK_EVENTS } from "@/lib/tracking/events";
 import { activeProfileAtom, activeProfileIdAtom, profilesAtom } from "./atoms";
-import { PROFILE_TRACK_EVENTS } from "./events";
 import { PROFILE_TYPE_DESC, PROFILE_TYPE_LABEL, type ProfileSummary } from "./profile";
 
 const listStyle = css({ display: "flex", flexDirection: "column", gap: "2" });
@@ -82,7 +82,7 @@ export function ProfileSwitchSheet() {
   function openSheet() {
     setError(null);
     setOpen(true);
-    track(PROFILE_TRACK_EVENTS.SWITCH_OPEN, {
+    track(TRACK_EVENTS.PROFILE_SWITCH_OPEN, {
       from: activeProfile?.type ?? null,
       profileCount: profiles.length,
     });
@@ -112,7 +112,7 @@ export function ProfileSwitchSheet() {
       };
       setProfiles(me.profiles.map((p) => ({ id: p.id, type: p.type })));
       setActiveProfileId(me.activeProfile?.id ?? target.id);
-      track(PROFILE_TRACK_EVENTS.SWITCH_COMPLETE, {
+      track(TRACK_EVENTS.PROFILE_SWITCH_COMPLETE, {
         from: activeProfile?.type ?? null,
         to: target.type,
       });

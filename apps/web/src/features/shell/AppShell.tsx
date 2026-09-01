@@ -43,6 +43,23 @@ export type AppShellProps = {
   children: ReactNode;
 };
 
+/**
+ * 폭 제한 + 데스크톱 바탕만 담당하는 셸 껍데기.
+ *
+ * 탭바가 없는 화면(로그인·온보딩 `(auth)`)도 480px 셸 안에 있어야 하므로 분리했다.
+ * 이쪽은 활성 프로필을 하이드레이트하지 않는다 — `(auth)` 는 프로필이 없거나
+ * 아직 확정되지 않은 상태라 atom 을 건드리면 안 된다.
+ */
+export function ShellFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className={backdropStyle}>
+      <div className={shellStyle}>
+        <div className={contentStyle}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export function AppShell({ profiles, activeProfileId, children }: AppShellProps) {
   const hasTabbar = profiles.length > 0;
 

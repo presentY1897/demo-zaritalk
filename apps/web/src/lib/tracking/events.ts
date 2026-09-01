@@ -35,6 +35,10 @@ export const TRACK_EVENTS = {
   SIGNUP_START: "signup_start",
   /** 가입 완료 — 계정 생성 성공 (T0.4) */
   SIGNUP_COMPLETE: "signup_complete",
+  /** 마이페이지에서 프로필 전환 시트를 열었을 때 (T0.5) */
+  PROFILE_SWITCH_OPEN: "profile_switch_open",
+  /** 프로필 전환 성공 — props: `{ from, to }` (프로필 유형) (T0.5) */
+  PROFILE_SWITCH_COMPLETE: "profile_switch_complete",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;

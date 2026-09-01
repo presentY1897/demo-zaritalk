@@ -13,21 +13,35 @@ import { queryTestDb, trackedEventCount } from "./db";
  */
 const SIGNUP_PHONE = "01055555555";
 
-test("E2E① 원클릭 임대인 데모 로그인 → 홈 진입", async ({ page }) => {
-  await page.goto("/login");
+/**
+ * Phase 0 완료 조건이 "원클릭 로그인 **4종**" 이라 역할별로 전부 돈다.
+ * 이름·유형은 시드(`packages/db/prisma/seed.ts`)와 `lib/auth/demo-accounts.ts` 기준.
+ */
+const DEMO_ROLES = [
+  { role: "landlord", name: "김임대", type: "LANDLORD", home: "/landlord" },
+  { role: "tenant", name: "박세입", type: "TENANT", home: "/tenant" },
+  { role: "realtor", name: "이중개", type: "REALTOR", home: "/realtor" },
+  { role: "master", name: "최마스", type: "MASTER", home: "/master" },
+] as const;
 
-  await page.getByTestId("demo-login-landlord").click();
+for (const { role, name, type, home } of DEMO_ROLES) {
+  test(`E2E① 원클릭 ${name}(${role}) 데모 로그인 → 홈 진입`, async ({ page }) => {
+    await page.goto("/login");
 
-  await expect(page).toHaveURL("/");
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await page.getByTestId(`demo-login-${role}`).click();
 
-  // 세션이 실제로 발급됐는지 API 로 확인 (활성 프로필까지 임대인으로 잡힌다)
-  const me = await page.request.get("/api/me");
-  expect(me.status()).toBe(200);
-  const body = await me.json();
-  expect(body.user.name).toBe("김임대");
-  expect(body.activeProfile.type).toBe("LANDLORD");
-});
+    // `/` 는 로그인 상태면 활성 프로필 홈으로 보낸다(T0.5)
+    await expect(page).toHaveURL(home);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    // 세션이 실제로 발급됐는지 API 로 확인 (활성 프로필까지 해당 역할로 잡힌다)
+    const me = await page.request.get("/api/me");
+    expect(me.status()).toBe(200);
+    const body = await me.json();
+    expect(body.user.name).toBe(name);
+    expect(body.activeProfile.type).toBe(type);
+  });
+}
 
 test("E2E② 신규 번호 OTP 가입 → 온보딩 → 세입자 프로필 → 수락 화면", async ({ page }) => {
   await page.goto("/login");

@@ -14,14 +14,14 @@
 | [T0.2](./tasks/t0.2-test-infra.md) | 테스트 인프라 | ✅ |
 | [T0.3](./tasks/t0.3-auth-api.md) | 인증 API | ✅ |
 | [T0.4](./tasks/t0.4-login-onboarding.md) | 로그인·온보딩 화면 | ✅ |
-| [T0.5](./tasks/t0.5-shell-profile.md) | 웹 셸 + 프로필 전환 | ⬜ |
+| [T0.5](./tasks/t0.5-shell-profile.md) | 웹 셸 + 프로필 전환 | ✅ |
 | [T0.6](./tasks/t0.6-ui-tokens.md) | packages/ui 디자인 토큰 | ✅ |
 | [T0.7](./tasks/t0.7-tracking.md) | 트래킹 코어 | ✅ |
 
 **Phase 완료 조건**
-- [ ] 전 task ✅
-- [ ] E2E: 원클릭 로그인 4종 + 신규 가입 여정 green
-- [ ] 라이브 URL에서 데모 로그인 가능
+- [ ] 전 task ✅ — T0.1(배포 연결)만 남음, 나머지 7개 완료
+- [x] E2E: 원클릭 로그인 4종 + 신규 가입 여정 green (`e2e/auth.spec.ts`, 전체 10 spec green)
+- [ ] 라이브 URL에서 데모 로그인 가능 — T0.1 대기
 
 ## Phase 1 — 임대인 코어 (자산·계약·수납·고지)
 
