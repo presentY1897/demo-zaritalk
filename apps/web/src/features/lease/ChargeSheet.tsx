@@ -101,9 +101,11 @@ export type ChargeSheetProps = {
   charge: ChargeDto | null;
   open: boolean;
   onClose: () => void;
+  /** 고지서 발송 시트를 여는 콜백(T1.7). 없으면 버튼을 그리지 않는다. */
+  onSendNotice?: (chargeId: string) => void;
 };
 
-export function ChargeSheet({ scope, charge, open, onClose }: ChargeSheetProps) {
+export function ChargeSheet({ scope, charge, open, onClose, onSendNotice }: ChargeSheetProps) {
   const { track } = useTrack();
   const createPayment = useCreatePayment(scope);
   const deletePayment = useDeletePayment(scope);
@@ -296,8 +298,16 @@ export function ChargeSheet({ scope, charge, open, onClose }: ChargeSheetProps) 
           </>
         )}
 
-        {/* T1.7 발송 시트 자리 — 이 청구의 고지서 발송·재발송 버튼이 여기 들어간다
-            (POST /api/leases/[id]/notices, chargeId = charge.id) */}
+        {onSendNotice ? (
+          <Button
+            variant="ghost"
+            fullWidth
+            data-testid="charge-notice-send"
+            onClick={() => onSendNotice(charge.id)}
+          >
+            이 청구로 고지서 발송
+          </Button>
+        ) : null}
 
         {createPayment.error || deletePayment.error ? (
           <p className={errorBoxStyle} role="alert">

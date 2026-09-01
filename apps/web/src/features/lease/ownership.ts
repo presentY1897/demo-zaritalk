@@ -12,21 +12,18 @@
  * | 없는 계약·청구·납부 id | 404 `NOT_FOUND` |
  * | 타인의 계약·청구·납부 | 403 `FORBIDDEN` |
  */
-import { prisma } from "@zari/db";
+import { prisma, type Building, type Lease, type Unit } from "@zari/db";
 import type { Guarded, LandlordSession } from "@/features/landlord/ownership";
 import { fail } from "@/lib/api/response";
 
-export type OwnedLease = {
-  id: string;
-  unitId: string;
-  status: "PENDING_TENANT" | "ACTIVE" | "ENDED" | "CANCELLED";
-  monthlyRent: number;
-  maintenanceFee: number;
-  paymentDay: number;
-  lateFeeRatePct: number | null;
-  startDate: Date;
-  endDate: Date;
-};
+/**
+ * 계약 + 호실 + 건물. 고지서 템플릿(T1.7)이 건물명·호실 라벨을 쓰므로 한 번에 실어 온다 —
+ * 소유권 판정이 두 곳에 갈라지지 않게 이 프로젝트의 유일한 계약 가드로 쓴다.
+ */
+export type OwnedLease = Lease & { unit: Unit & { building: Building } };
+
+/** @deprecated `OwnedLease` 와 같다. T1.7 이 쓰던 이름을 호환용으로 남긴다. */
+export type LeaseWithUnit = OwnedLease;
 
 /** 내 계약인지 확인(계약 → 호실 → 건물 → 소유자). 404(없음) · 403(남의 계약). */
 export async function requireOwnedLease(
@@ -35,7 +32,7 @@ export async function requireOwnedLease(
 ): Promise<Guarded<OwnedLease>> {
   const lease = await prisma.lease.findUnique({
     where: { id: leaseId },
-    include: { unit: { include: { building: { select: { ownerProfileId: true } } } } },
+    include: { unit: { include: { building: true } } },
   });
   if (!lease) return { response: fail("NOT_FOUND", "계약을 찾을 수 없습니다.") };
   if (lease.unit.building.ownerProfileId !== landlord.profile.id) {
@@ -88,7 +85,7 @@ export async function requireOwnedPayment(
       charge: {
         include: {
           lease: {
-            include: { unit: { include: { building: { select: { ownerProfileId: true } } } } },
+            include: { unit: { include: { building: true } } },
           },
         },
       },

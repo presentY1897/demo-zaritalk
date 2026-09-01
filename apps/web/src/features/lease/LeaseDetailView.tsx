@@ -18,6 +18,7 @@ import { ApiError } from "@/features/auth/api";
 import { formatDate, formatKrw, formatManwon, leaseKindLabel } from "@/features/landlord/format";
 import { formatPhone } from "@/lib/phone";
 import { TRACK_EVENTS } from "@/lib/tracking/events";
+import { NoticeSendSheet } from "@/features/notice/NoticeSendSheet";
 import { ChargeList } from "./ChargeList";
 import { ChargeSheet } from "./ChargeSheet";
 import { useCharges, useLease, useUpdateLease } from "./hooks";
@@ -116,6 +117,8 @@ export function LeaseDetailView({
   const [tab, setTab] = useState<"terms" | "charges">(initialTab);
   const [selectedChargeId, setSelectedChargeId] = useState<string | null>(null);
   const [endSheetOpen, setEndSheetOpen] = useState(false);
+  // 고지서 발송(T1.7). chargeId 가 있으면 그 청구를, 없으면 시트가 미납 최신 청구를 고른다.
+  const [noticeChargeId, setNoticeChargeId] = useState<string | null | undefined>(undefined);
 
   const meta = LEASE_STATUS_META[lease.status];
   const summary = lease.chargeSummary;
@@ -272,7 +275,14 @@ export function LeaseDetailView({
         <section className={sectionStyle}>
           <div className={sectionHeadStyle}>
             <h2 className={sectionTitleStyle}>월별 청구</h2>
-            {/* T1.7 발송 시트 자리 — 「고지서 발송」 진입 버튼이 여기 들어간다 */}
+            <Button
+              variant="secondary"
+              size="sm"
+              data-testid="lease-notice-send"
+              onClick={() => setNoticeChargeId(null)}
+            >
+              고지서 발송
+            </Button>
           </div>
           <ChargeList
             charges={charges}
@@ -295,6 +305,14 @@ export function LeaseDetailView({
         charge={selectedCharge}
         open={selectedCharge !== null}
         onClose={() => setSelectedChargeId(null)}
+        onSendNotice={(chargeId) => setNoticeChargeId(chargeId)}
+      />
+
+      <NoticeSendSheet
+        open={noticeChargeId !== undefined}
+        onClose={() => setNoticeChargeId(undefined)}
+        leaseId={lease.id}
+        {...(noticeChargeId ? { defaultChargeId: noticeChargeId } : {})}
       />
 
       <Sheet

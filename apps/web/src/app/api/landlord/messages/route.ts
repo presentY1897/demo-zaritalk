@@ -5,7 +5,7 @@
  * 크론이 만든 만기 알림(T1.4)도 같은 이력에 함께 보인다.
  */
 import { requireLandlord } from "@/features/landlord/ownership";
-import { requireOwnedLease } from "@/features/notice/guards";
+import { requireOwnedLease } from "@/features/lease/ownership";
 import { listLandlordMessages } from "@/features/notice/queries";
 import { messagesQuerySchema } from "@/features/notice/schema";
 import { ok, parseQuery } from "@/lib/api/response";

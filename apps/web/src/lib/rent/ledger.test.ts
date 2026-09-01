@@ -246,8 +246,8 @@ describe("buildChargeDraft — 한 달치 청구 조립", () => {
     expect(draft.carriedOverAmount).toBe(300_000);
     expect(draft.lateFeeAmount).toBe(15_500);
     expect(draft.totalDue).toBe(1_015_500);
-    // 시드의 8월 청구는 손으로 넣은 1,015,000(연체료 15,000 = 30일치)이다.
-    // 크론은 이미 만들어진 청구 금액을 건드리지 않으므로 시드 값은 그대로 남는다.
+    // 시드(`packages/db/prisma/seed.ts`)의 8월 청구가 이 값과 같다 —
+    // 아래 "시드 시나리오" describe 가 둘을 못 박는다.
   });
 
   test("이월이 다시 이월된다 — 8월 전액 미납 → 9월", () => {

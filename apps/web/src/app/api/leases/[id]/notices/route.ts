@@ -13,7 +13,7 @@
 import { prisma } from "@zari/db";
 import { requireLandlord } from "@/features/landlord/ownership";
 import { noticeKindRequiresCharge, demoBankAccount } from "@/features/notice/constants";
-import { requireOwnedLease } from "@/features/notice/guards";
+import { requireOwnedLease } from "@/features/lease/ownership";
 import { getNoticeTarget, toMessageLogDto } from "@/features/notice/queries";
 import { sendNoticeSchema } from "@/features/notice/schema";
 import { noticeUrl, renderNoticeTemplate } from "@/features/notice/template";
