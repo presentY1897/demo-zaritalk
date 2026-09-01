@@ -22,19 +22,39 @@ import type {
   UnitDetailDto,
   UnitSummaryDto,
 } from "./types";
+import { calcOutstanding, kstToday, resolveChargeStatus } from "@/lib/rent";
 
 /** 그리드·목록에서 상태를 판정할 때 필요한 계약만 가져온다(진행 중 계약 = ACTIVE·PENDING_TENANT). */
 const CURRENT_LEASE_STATUSES: LeaseStatusValue[] = ["ACTIVE", "PENDING_TENANT"];
 
 /**
  * 상태 판정용 include.
- * `charges` 는 **OVERDUE 행이 있는지**만 보려고 붙인다 — 금액 계산은 T1.4 원장 엔진 소유다.
+ *
+ * 저장된 `RentCharge.status` 는 크론(하루 1회)이 갱신하므로, 기한이 막 지난 청구는
+ * 컬럼이 아직 `SCHEDULED` 다. 그리드가 그 컬럼을 그대로 믿으면 대시보드(T1.9)·수납 탭(T1.5)과
+ * 최대 하루 어긋난다 — 둘은 원장 엔진으로 **실시간 재판정**하기 때문이다.
+ * 그래서 미납 청구를 판정에 필요한 컬럼과 함께 가져와 여기서도 엔진으로 다시 판정한다.
  */
 const currentLeasesInclude = {
   where: { status: { in: CURRENT_LEASE_STATUSES } },
   orderBy: [{ startDate: "desc" as const }],
-  include: { charges: { where: { status: ChargeStatus.OVERDUE }, select: { id: true } } },
+  include: {
+    charges: {
+      where: { NOT: { status: ChargeStatus.PAID } },
+      select: { dueDate: true, totalDue: true, paidAmount: true },
+    },
+  },
 };
+
+/** 저장된 status 대신 오늘(KST) 기준으로 다시 판정한 연체 여부. */
+function hasOverdueNow(
+  charges: readonly { dueDate: Date; totalDue: number; paidAmount: number }[],
+): boolean {
+  const asOf = kstToday();
+  return charges.some(
+    (charge) => resolveChargeStatus({ ...charge, asOf }) === ChargeStatus.OVERDUE,
+  );
+}
 
 /** `@db.Date` 컬럼 → `YYYY-MM-DD` (UTC 자정으로 저장돼 있다 — 시드 주석 참고) */
 const toDateString = (value: Date): string => value.toISOString().slice(0, 10);
@@ -62,8 +82,10 @@ type UnitRow = {
   rooms: number | null;
   note: string | null;
   createdAt: Date;
-  /** 연체 판정에는 **OVERDUE 청구가 있는지**(개수)만 쓴다 — 컬럼 구성은 상관없다 */
-  leases: (LeaseRow & { charges: readonly unknown[] })[];
+  /** 연체는 저장된 status 가 아니라 원장 엔진으로 다시 판정한다(`hasOverdueNow`) */
+  leases: (LeaseRow & {
+    charges: readonly { dueDate: Date; totalDue: number; paidAmount: number }[];
+  })[];
 };
 
 type BuildingRow = {
@@ -113,8 +135,7 @@ export function toUnitSummary(unit: UnitRow): UnitSummaryDto {
   const status = deriveUnitStatus({
     hasActiveLease: Boolean(active),
     hasPendingLease: Boolean(pending),
-    // T1.4 머지 후 이 한 줄을 원장 엔진의 연체 판정으로 바꾼다
-    hasOverdueCharge: (active?.charges.length ?? 0) > 0,
+    hasOverdueCharge: hasOverdueNow(active?.charges ?? []),
   });
 
   return {
@@ -211,24 +232,33 @@ function toListingSummary(listing: ListingRow): ListingSummaryDto {
 }
 
 /**
- * 수납 요약 — **저장된 컬럼의 단순 집계**다(건수 + `totalDue − paidAmount` 합).
- * 연체료·이월 계산은 T1.4 월세 원장 엔진 소유라 여기서 만들지 않는다.
- * T1.4 머지 후 이 함수를 원장 엔진의 요약 함수 호출로 교체한다.
+ * 수납 요약 — 상태·잔액을 **원장 엔진(T1.4)으로 오늘 기준 재판정**한다.
+ * 저장된 `status` 컬럼은 크론이 하루 1회 갱신하므로 그대로 믿으면
+ * 수납 탭(T1.5)·대시보드(T1.9)와 숫자가 어긋난다.
  */
 function toChargeSummary(
-  charges: { year: number; month: number; status: string; totalDue: number; paidAmount: number }[],
+  charges: {
+    year: number;
+    month: number;
+    dueDate: Date;
+    status: string;
+    totalDue: number;
+    paidAmount: number;
+  }[],
 ): ChargeSummaryDto {
+  const asOf = kstToday();
   let unpaidCount = 0;
   let overdueCount = 0;
   let unpaidAmount = 0;
   let latest: { year: number; month: number } | null = null;
 
   for (const charge of charges) {
-    if (charge.status !== ChargeStatus.PAID) {
+    const status = resolveChargeStatus({ ...charge, asOf });
+    if (status !== ChargeStatus.PAID) {
       unpaidCount += 1;
-      unpaidAmount += Math.max(charge.totalDue - charge.paidAmount, 0);
+      unpaidAmount += calcOutstanding(charge.totalDue, charge.paidAmount);
     }
-    if (charge.status === ChargeStatus.OVERDUE) overdueCount += 1;
+    if (status === ChargeStatus.OVERDUE) overdueCount += 1;
     if (
       !latest ||
       charge.year > latest.year ||
@@ -266,7 +296,14 @@ export async function getUnitDetail(
         orderBy: [{ startDate: "desc" }],
         include: {
           charges: {
-            select: { year: true, month: true, status: true, totalDue: true, paidAmount: true },
+            select: {
+              year: true,
+              month: true,
+              dueDate: true,
+              status: true,
+              totalDue: true,
+              paidAmount: true,
+            },
           },
         },
       },
@@ -287,7 +324,7 @@ export async function getUnitDetail(
       .filter((lease) => CURRENT_LEASE_STATUSES.includes(lease.status))
       .map((lease) => ({
         ...lease,
-        charges: lease.charges.filter((charge) => charge.status === ChargeStatus.OVERDUE),
+        charges: lease.charges.filter((charge) => charge.status !== ChargeStatus.PAID),
       })),
   });
 

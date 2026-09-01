@@ -55,6 +55,12 @@ export const TRACK_EVENTS = {
   PAYMENT_RECORD_COMPLETE: "payment_record_complete",
   /** 납부 기록 취소(오기록 되돌리기) — props: `{ method, amount }` (T1.5) */
   PAYMENT_CANCEL_COMPLETE: "payment_cancel_complete",
+  /** 임대인 홈 대시보드 노출 — props: `{ overdueCount, expiringCount, inboxCount }` (T1.9) */
+  LANDLORD_HOME_VIEW: "landlord_home_view",
+  /** 홈의 연체 청구 행 클릭 — props: `{ leaseId, chargeId, outstanding }` (T1.9) */
+  LANDLORD_OVERDUE_CLICK: "landlord_overdue_click",
+  /** 홈의 만기 임박 계약 행 클릭 — props: `{ leaseId, daysLeft }` (T1.9) */
+  LANDLORD_EXPIRY_CLICK: "landlord_expiry_click",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;
