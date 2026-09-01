@@ -25,3 +25,6 @@ packages/db/src/generated/
 # playwright
 test-results/
 playwright-report/
+
+# vercel
+.vercel/
