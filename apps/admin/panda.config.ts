@@ -1,16 +1,18 @@
 import { defineConfig } from "@pandacss/dev";
-import { zariColors, zariSemanticColors } from "@zari/ui/theme";
+import {
+  zariGlobalCss,
+  zariThemeExtend,
+  zariUiIncludeGlob,
+} from "@zari/ui/theme";
 
 export default defineConfig({
   preflight: true,
-  include: ["./src/**/*.{ts,tsx}"],
+  // @zari/ui 소스를 함께 스캔해야 공용 컴포넌트의 cva variant CSS 가 여기서 생성된다
+  include: ["./src/**/*.{ts,tsx}", zariUiIncludeGlob],
   exclude: [],
   outdir: "styled-system",
   jsxFramework: "react",
-  theme: {
-    extend: {
-      tokens: { colors: zariColors },
-      semanticTokens: { colors: zariSemanticColors },
-    },
-  },
+  globalCss: zariGlobalCss,
+  // 토큰·textStyle·keyframes 는 packages/ui/src/theme.ts 한 곳에서만 정의한다(중복 선언 금지)
+  theme: { extend: zariThemeExtend },
 });
