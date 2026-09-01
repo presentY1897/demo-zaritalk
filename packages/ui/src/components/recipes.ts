@@ -79,7 +79,12 @@ export const buttonRecipe = cva({
       lg: { minH: "52px", px: "5", textStyle: "subtitle" },
     },
     fullWidth: {
-      true: { w: "full" },
+      /**
+       * base 의 `flexShrink: 0` 과 `w: full` 이 겹치면, flex 행에 fullWidth 버튼을
+       * 둘 이상 나란히 뒀을 때 각자 100% 폭을 고집해 480px 셸을 뚫는다.
+       * fullWidth 일 때만 수축을 허용한다(단독으로 쓰면 여전히 100%).
+       */
+      true: { w: "full", flexShrink: 1, minW: 0 },
       false: {},
     },
     /** 로딩 중에는 라벨을 감추고 스피너만 보인다 (Button 컴포넌트가 처리) */

@@ -21,7 +21,15 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-const d = (s: string) => new Date(`${s}T00:00:00+09:00`);
+/**
+ * `@db.Date` 컬럼용 — UTC 자정으로 만든다.
+ * KST 자정(`T00:00:00+09:00`)으로 넣으면 UTC 로는 전날 15:00 이라
+ * Postgres `date` 로 잘릴 때 하루가 밀린다(계약 시작일이 하루 앞당겨 보이던 버그).
+ */
+const d = (s: string) => new Date(`${s}T00:00:00Z`);
+
+/** 타임스탬프 컬럼용 — "그날 한국시간 자정에 일어난 일"을 뜻한다. */
+const at = (s: string) => new Date(`${s}T00:00:00+09:00`);
 
 async function main() {
   // 의존 역순 전체 삭제
@@ -173,7 +181,7 @@ async function main() {
       endDate: d("2027-02-28"),
       lateFeeRatePct: 5,
       status: LeaseStatus.ACTIVE,
-      tenantAcceptedAt: d("2026-03-02"),
+      tenantAcceptedAt: at("2026-03-02"),
     },
   });
 
@@ -193,7 +201,7 @@ async function main() {
         create: {
           amount: 700_000,
           method: PaymentMethod.VIRTUAL_TRANSFER,
-          paidAt: d("2026-06-05"),
+          paidAt: at("2026-06-05"),
           memo: "박세입",
         },
       },
@@ -214,7 +222,7 @@ async function main() {
         create: {
           amount: 400_000,
           method: PaymentMethod.MANUAL_CHECK,
-          paidAt: d("2026-07-10"),
+          paidAt: at("2026-07-10"),
           memo: "일부 입금 확인",
         },
       },
@@ -257,8 +265,8 @@ async function main() {
       token: "demo-overdue-park",
       leaseId: activeLease.id,
       chargeId: augustCharge.id,
-      sentAt: d("2026-08-12"),
-      openedAt: d("2026-08-12"),
+      sentAt: at("2026-08-12"),
+      openedAt: at("2026-08-12"),
     },
   });
 
@@ -292,7 +300,7 @@ async function main() {
         create: {
           amount: 580_000,
           method: PaymentMethod.MANUAL_CHECK,
-          paidAt: d("2026-08-25"),
+          paidAt: at("2026-08-25"),
         },
       },
     },
@@ -306,7 +314,7 @@ async function main() {
       token: "demo-notice-hong",
       leaseId: pendingLease.id,
       chargeId: pendingCharge.id,
-      sentAt: d("2026-08-20"),
+      sentAt: at("2026-08-20"),
     },
   });
 

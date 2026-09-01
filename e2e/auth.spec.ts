@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { queryTestDb, trackedEventCount } from "./db";
 
 /**
  * T0.4 통합(E2E) — 로그인·온보딩 두 여정.
@@ -60,4 +61,17 @@ test("E2E② 신규 번호 OTP 가입 → 온보딩 → 세입자 프로필 → 
   const body = await me.json();
   expect(body.user.phone).toBe(SIGNUP_PHONE);
   expect(body.activeProfile.type).toBe("TENANT");
+
+  // T0.7 트래킹이 이 여정에서 실제로 적재됐는지 — D2 퍼널의 뒤쪽 두 단계 + 자동 page_view.
+  // 전송이 배치라 폴링으로 기다린다.
+  await expect.poll(() => trackedEventCount("signup_start")).toBeGreaterThan(0);
+  await expect.poll(() => trackedEventCount("signup_complete")).toBe(1);
+  await expect.poll(() => trackedEventCount("page_view")).toBeGreaterThan(0);
+
+  // 가입 완료 시점엔 세션이 있으므로 이벤트에 userId 가 붙는다
+  const rows = await queryTestDb<{ userId: string | null }>(
+    'SELECT "userId" FROM "TrackingEvent" WHERE name = $1',
+    ["signup_complete"],
+  );
+  expect(rows[0]?.userId).toBe(body.user.id);
 });

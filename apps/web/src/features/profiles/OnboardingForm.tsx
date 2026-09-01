@@ -10,13 +10,14 @@
  * 좌표는 지금 **수동 입력 + 지역 프리셋**이다 — 카카오맵 키가 없어 지오코딩을 못 한다.
  * T3.x 에서 주소 검색(카카오 로컬 API)으로 교체하면 위경도 입력칸은 사라진다.
  */
-import { Badge, Button, Input } from "@zari/ui";
+import { Badge, Button, Input, useTrack } from "@zari/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { css, cx } from "styled-system/css";
 import { ApiError } from "@/features/auth/api";
 import { useCreateProfile } from "@/features/auth/hooks";
 import { formatPhone } from "@/lib/phone";
+import { TRACK_EVENTS } from "@/lib/tracking/events";
 import {
   AREA_PRESETS,
   MASTER_CATEGORY_OPTIONS,
@@ -121,6 +122,7 @@ export function OnboardingForm({
   existingTypes = [],
 }: OnboardingFormProps) {
   const router = useRouter();
+  const { track, flush } = useTrack();
   const createProfile = useCreateProfile();
 
   const [name, setName] = useState(defaultName);
@@ -199,6 +201,11 @@ export function OnboardingForm({
     if (!input) return;
     try {
       const result = await createProfile.mutateAsync(input);
+      // D2 퍼널의 마지막 단계. 프로필 추가(ADD_PROFILE)는 가입이 아니므로 제외한다.
+      if (mode === "SIGNUP") {
+        track(TRACK_EVENTS.SIGNUP_COMPLETE, { profileType: result.profile.type });
+        flush(); // 곧바로 라우팅하므로 배치 창을 기다리지 않고 내보낸다
+      }
       // 세입자 + 대기 계약이면 수락 화면(T1.3), 아니면 홈 — 판정은 서버가 한다
       router.replace(result.redirectTo);
       router.refresh();

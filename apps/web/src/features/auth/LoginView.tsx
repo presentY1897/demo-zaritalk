@@ -8,11 +8,12 @@
  *
  * 로그인 뒤 이동: 기존 회원 → `/`(홈), 신규 번호 → `/onboarding?ticket=…`.
  */
-import { Button, cardRecipe, Input } from "@zari/ui";
+import { Button, cardRecipe, Input, useTrack } from "@zari/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { css, cx } from "styled-system/css";
 import { formatPhone } from "@/lib/phone";
+import { TRACK_EVENTS } from "@/lib/tracking/events";
 import { ApiError } from "./api";
 import { useDemoLogin, useRequestOtp, useVerifyOtp } from "./hooks";
 import type { DemoAccountOption, DemoRoleValue } from "./types";
@@ -94,6 +95,7 @@ export function LoginView({ demoAccounts }: { demoAccounts: DemoAccountOption[] 
   const [code, setCode] = useState("");
   const [issued, setIssued] = useState<{ phone: string; code: string } | null>(null);
 
+  const { track } = useTrack();
   const requestOtp = useRequestOtp();
   const verifyOtp = useVerifyOtp();
   const demoLogin = useDemoLogin();
@@ -111,6 +113,8 @@ export function LoginView({ demoAccounts }: { demoAccounts: DemoAccountOption[] 
   async function handleRequestOtp() {
     try {
       const result = await requestOtp.mutateAsync(phoneDigits);
+      // D2 퍼널의 3번째 단계 — 인증번호를 받은 시점을 "가입 시작"으로 본다
+      track(TRACK_EVENTS.SIGNUP_START, { method: "otp" });
       setIssued({ phone: result.phone, code: result.code });
       setCode("");
     } catch {
