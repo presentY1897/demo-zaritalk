@@ -39,6 +39,10 @@ export const TRACK_EVENTS = {
   PROFILE_SWITCH_OPEN: "profile_switch_open",
   /** 프로필 전환 성공 — props: `{ from, to }` (프로필 유형) (T0.5) */
   PROFILE_SWITCH_COMPLETE: "profile_switch_complete",
+  /** 건물 등록 성공 — props: `{ unitCount }` 는 없다(등록 직후엔 호실 0) (T1.1) */
+  BUILDING_CREATE_COMPLETE: "building_create_complete",
+  /** 호실 등록 성공 — props: `{ buildingId }` (T1.1) */
+  UNIT_CREATE_COMPLETE: "unit_create_complete",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;

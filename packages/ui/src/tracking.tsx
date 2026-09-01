@@ -46,7 +46,9 @@ export type KnownTrackEventName =
   | "signup_start"
   | "signup_complete"
   | "profile_switch_open"
-  | "profile_switch_complete";
+  | "profile_switch_complete"
+  | "building_create_complete"
+  | "unit_create_complete";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.
