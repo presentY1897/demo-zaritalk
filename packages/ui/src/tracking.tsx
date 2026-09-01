@@ -57,7 +57,11 @@ export type KnownTrackEventName =
   | "payment_cancel_complete"
   | "landlord_home_view"
   | "landlord_overdue_click"
-  | "landlord_expiry_click";
+  | "landlord_expiry_click"
+  | "tenant_lease_accept_view"
+  | "tenant_lease_accept_complete"
+  | "tenant_lease_decline_complete"
+  | "tenant_home_view";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

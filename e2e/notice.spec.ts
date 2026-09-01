@@ -20,13 +20,16 @@ const SEED_TOKEN = "demo-notice-hong";
  * `e2e/auth.spec.ts` 가 먼저 돌면서 같은 번호로 가입해 두므로(파일 순서상 auth < notice)
  * 이 여정이 "신규 가입" 이 되도록 계정을 지운다. 시드를 다시 돌리지 않는 이유는
  * 다른 스펙이 만든 상태(건물·호실)를 지우지 않기 위해서다.
+ *
+ * T1.3 이 붙은 뒤로는 **계약 상태까지** 되돌린다 — 수락하면 계약이 `ACTIVE` 가 되므로
+ * 그대로 두면 다음 실행에서 대기 계약을 못 찾는다.
  */
 async function resetSignupPhone(phone: string): Promise<void> {
   await queryTestDb(
-    `UPDATE "Lease" SET "tenantProfileId" = NULL
-       WHERE "tenantProfileId" IN (
-         SELECT p.id FROM "Profile" p JOIN "User" u ON u.id = p."userId" WHERE u.phone = $1
-       )`,
+    `UPDATE "Lease"
+        SET "tenantProfileId" = NULL, "tenantAcceptedAt" = NULL,
+            status = 'PENDING_TENANT'::"LeaseStatus"
+      WHERE "tenantPhone" = $1 AND status <> 'ENDED'::"LeaseStatus"`,
     [phone],
   );
   await queryTestDb('DELETE FROM "OtpCode" WHERE phone = $1', [phone]);
@@ -129,8 +132,8 @@ test("E2E① 그로스 여정 — 발송 → 비로그인 열람 → CTA → 가
   await page.getByTestId("profile-type-TENANT").click();
   await page.getByTestId("onboarding-submit").click();
 
-  // ── ⑥ 내 번호로 등록된 대기 계약 수락 화면(T1.3 플레이스홀더)까지 도달
-  await expect(page).toHaveURL("/tenant/leases/pending");
+  // ── ⑥ 내 번호로 등록된 대기 계약 수락 화면(T1.3)까지 도달
+  await expect(page).toHaveURL("/tenant/leases/accept");
   await expect(page.getByRole("heading", { name: "세입자 계약 수락" })).toBeVisible();
   await expect(page.getByText("행당해피빌 202호")).toBeVisible();
 
@@ -147,6 +150,36 @@ test("E2E① 그로스 여정 — 발송 → 비로그인 열람 → CTA → 가
   );
   expect(ctaRows[0]?.props.experiment).toBe("notice_cta");
   expect(ctaRows[0]?.props.variant).toBe("A");
+
+  // ── ⑧ 수락까지 (T1.3) — 그로스 여정의 마지막 구간.
+  //    D2 퍼널 검증(⑦)을 먼저 끝내고 이어 붙인다. 수락은 같은 anonId 로 T1.3 이벤트를
+  //    더 쌓으므로 순서를 바꾸면 ⑦ 의 `toEqual` 이 깨진다.
+  await page.getByTestId("pending-accept").click();
+
+  // 수락하면 세입자 홈으로 — 202호 계약이 내 계정에 연결되고 ACTIVE 가 된다
+  await expect(page).toHaveURL("/tenant");
+  await expect(page.getByTestId("tenant-lease-card")).toContainText("행당해피빌 202호");
+  await expect(page.getByTestId("tenant-lease-card")).toContainText("계약중");
+
+  // 이번 달 납부 예정 — 월세 550,000 + 관리비 30,000 = 580,000원, 납부일 25일
+  await expect(page.getByTestId("tenant-charge-amount")).toContainText("580,000원");
+  await expect(page.getByTestId("tenant-charge-status")).toHaveText("예정");
+
+  // 수락 대기 배너는 사라진다
+  await expect(page.getByTestId("tenant-pending-banner")).toHaveCount(0);
+
+  // 계약이 실제로 연결됐는지 DB 로 확인 (화면으로 드러나지 않는 필드)
+  const accepted = await queryTestDb<{
+    status: string;
+    tenantProfileId: string | null;
+    tenantAcceptedAt: string | null;
+  }>(
+    `SELECT status, "tenantProfileId", "tenantAcceptedAt" FROM "Lease" WHERE "tenantPhone" = $1`,
+    [SIGNUP_PHONE],
+  );
+  expect(accepted[0]?.status).toBe("ACTIVE");
+  expect(accepted[0]?.tenantProfileId).not.toBeNull();
+  expect(accepted[0]?.tenantAcceptedAt).not.toBeNull();
 
   await landlordContext.close();
 });

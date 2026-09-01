@@ -248,7 +248,8 @@ test("세입자 + 내 번호로 등록된 대기 계약이 있으면 수락 화�
 
   const res = await post({ type: "TENANT", name: "홍미가", signupTicket });
   expect(res.status).toBe(201);
-  expect((await res.json()).redirectTo).toBe("/tenant/leases/pending");
+  // 정식 경로는 `/tenant/leases/accept` — T1.3 이 화면을 만들면서 옛 플레이스홀더 경로와 통일했다
+  expect((await res.json()).redirectTo).toBe("/tenant/leases/accept");
 });
 
 test("대기 계약이 다른 번호면 홈으로 보낸다", async () => {
