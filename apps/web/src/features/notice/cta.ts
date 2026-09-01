@@ -1,0 +1,93 @@
+/**
+ * 공개 고지서 하단 가입 CTA — **[D2](../../../../../docs/DECISIONS.md#-d2-ab-실험-소재-1개-실운영) 의 A/B 실험 소재**(`notice_cta`).
+ *
+ * 지금(T1.8)은 **배정 로직 없이 문구·배치 2안만** 정의한다. 실운영 A/B 는 T6.1 이 붙인다.
+ *
+ * ## T6.1 이 갈아 끼울 자리 (여기 한 곳뿐)
+ *
+ * ```ts
+ * // 지금 — app/(app)/notice/[token]/page.tsx
+ * const variant = resolveNoticeCtaVariant(searchParams.variant);
+ *
+ * // T6.1 — anonId 로 배정(AbAssignment)해서 넘긴다. 화면·이벤트는 한 줄도 바뀌지 않는다
+ * const variant = await assignVariant(anonId, NOTICE_CTA_EXPERIMENT);   // "A" | "B"
+ * ```
+ *
+ * `NoticeCta` 는 `variant` prop 만 보고 문구·배치를 바꾸므로, 배정이 어디서 오든 상관없다.
+ * 클릭 이벤트에는 항상 `props.variant` 가 실려 나가고(`notice_cta_click`), 퍼널은
+ * `notice_view → notice_cta_click → signup_start → signup_complete` 로 이어진다.
+ */
+
+/** A/B 실험 키 — `AbAssignment.experimentKey` 와 트래킹 `props.experiment` 에 같은 값을 쓴다. */
+export const NOTICE_CTA_EXPERIMENT = "notice_cta";
+
+export const NOTICE_CTA_VARIANTS = ["A", "B"] as const;
+export type NoticeCtaVariant = (typeof NOTICE_CTA_VARIANTS)[number];
+
+/** 기본(대조군) — 배정이 없거나 값이 이상하면 이쪽이다. */
+export const DEFAULT_NOTICE_CTA_VARIANT: NoticeCtaVariant = "A";
+
+export type NoticeCtaContent = {
+  variant: NoticeCtaVariant;
+  /**
+   * 배치 — 두 안의 차이가 문구만이 아니라 **자리**에도 있다(D2: "문구·배치 2안").
+   * - `bottom`: 고지서 내용을 다 읽은 뒤 하단 카드 (대조군)
+   * - `top`: 금액 위 상단 배너 + 하단에도 버튼 (노출을 앞으로 당긴 안)
+   */
+  placement: "bottom" | "top";
+  headline: string;
+  description: string;
+  buttonLabel: string;
+  /** 버튼 아래 한 줄 — 가입 장벽을 낮추는 보조 문구 */
+  footnote: string;
+};
+
+export const NOTICE_CTA_CONTENT: Record<NoticeCtaVariant, NoticeCtaContent> = {
+  A: {
+    variant: "A",
+    placement: "bottom",
+    headline: "자리톡으로 월세 관리하기",
+    description:
+      "고지서·납부 내역·계약 정보를 한곳에서 확인하세요. 연말정산 월세 세액공제 자료도 자동으로 모입니다.",
+    buttonLabel: "자리톡으로 월세 관리하기",
+    footnote: "전화번호만 있으면 30초면 시작합니다.",
+  },
+  B: {
+    variant: "B",
+    placement: "top",
+    headline: "이 고지서, 내 계약에 연결할까요?",
+    description:
+      "가입하면 이번 달 고지서부터 지난 납부 내역까지 내 계정에서 바로 보입니다. 다음 달부터는 링크 없이 앱에서 확인하세요.",
+    buttonLabel: "내 계약 연결하고 확인하기",
+    footnote: "임대인이 등록한 계약을 전화번호로 찾아 드립니다.",
+  },
+};
+
+/** 문자열(쿼리·배정 결과) → 변형. 모르는 값이면 대조군. */
+export function resolveNoticeCtaVariant(value?: string | null): NoticeCtaVariant {
+  return (NOTICE_CTA_VARIANTS as readonly string[]).includes(value ?? "")
+    ? (value as NoticeCtaVariant)
+    : DEFAULT_NOTICE_CTA_VARIANT;
+}
+
+export function noticeCtaContent(variant: NoticeCtaVariant): NoticeCtaContent {
+  return NOTICE_CTA_CONTENT[variant];
+}
+
+/**
+ * CTA 목적지 — `/login` 으로 보내되 **어디서 왔는지를 쿼리로 이어 붙인다.**
+ *
+ * 로그인 화면(T0.4 소유)은 이 값을 읽지 않지만, `page_view` 가 쿼리까지 포함한 경로를
+ * 그대로 기록하므로(`lib/tracking/page-view.tsx`) 가입 퍼널의 유입 출처가 이벤트에 남는다.
+ * anonId 쿠키가 고지서 → 로그인 → 가입까지 같은 값으로 이어지므로 D2 퍼널은 anonId 로 잇고,
+ * 이 쿼리는 "어느 고지서·어느 변형에서 왔는가"를 사람이 읽을 수 있게 남기는 용도다.
+ */
+export function noticeCtaHref(token: string, variant: NoticeCtaVariant): string {
+  const params = new URLSearchParams({
+    from: "notice",
+    notice: token,
+    experiment: NOTICE_CTA_EXPERIMENT,
+    variant,
+  });
+  return `/login?${params.toString()}`;
+}
