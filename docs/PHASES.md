@@ -31,10 +31,10 @@
 
 | task | 내용 | 상태 |
 |---|---|---|
-| [T1.1](./tasks/t1.1-building-unit.md) | 건물·호실 관리 | ⬜ |
+| [T1.1](./tasks/t1.1-building-unit.md) | 건물·호실 관리 | ✅ |
 | [T1.2](./tasks/t1.2-lease.md) | 계약 등록·관리 | ⬜ |
 | [T1.3](./tasks/t1.3-tenant-link.md) | 세입자 연결 | ⬜ |
-| [T1.4](./tasks/t1.4-rent-engine.md) | 원장 엔진 (청구 생성·이월·연체) | ⬜ |
+| [T1.4](./tasks/t1.4-rent-engine.md) | 원장 엔진 (청구 생성·이월·연체) | ✅ |
 | [T1.5](./tasks/t1.5-rent-ui.md) | 수납 UI | ⬜ |
 | [T1.6](./tasks/t1.6-ledger.md) | 임대장부 | ⬜ |
 | [T1.7](./tasks/t1.7-notice-send.md) | 고지서 발송 | ⬜ |
