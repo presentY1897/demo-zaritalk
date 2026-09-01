@@ -28,11 +28,15 @@
 
 ```sh
 # .env.neon — 커밋 금지 (gitignore 됨)
-NEON_POOLED_URL="postgresql://...-pooler.../neondb?sslmode=require"
-NEON_DIRECT_URL="postgresql://.../neondb?sslmode=require"
+NEON_POOLED_URL="postgresql://...-pooler.../neondb?sslmode=verify-full&channel_binding=require"
+NEON_DIRECT_URL="postgresql://.../neondb?sslmode=verify-full&channel_binding=require"
 ```
 
-## 2단계 — 스키마·시드 적용 (Claude)
+> Neon이 주는 문자열은 `sslmode=require` 인데, node-postgres 8.23+ 는 이걸 쓰면
+> "앞으로 동작이 바뀐다"는 deprecation 경고를 낸다(Vercel 로그에도 뜬다).
+> Neon은 공개 CA 인증서라 **`sslmode=verify-full`** 로 바꿔도 그대로 붙고 서버 인증서 검증까지 한다.
+
+## 2단계 — 스키마·시드 적용 (Claude) ✅ 완료
 
 `.env.neon` 이 생기면 아래를 실행한다.
 
@@ -44,6 +48,9 @@ DATABASE_URL="$NEON_DIRECT_URL" pnpm db:seed     # 데모 시드
 
 > `db:seed` 는 **전 테이블을 지우고 다시 만든다.** 데모 DB 전용이라 그렇게 설계돼 있다.
 > 스키마가 바뀔 때마다(Phase 1~6) `db:deploy` 를 다시 돌린다.
+>
+> 시드의 일괄 삭제는 29개 `deleteMany` 를 한 트랜잭션에 묶는데, 원격 DB는 왕복 지연이 커서
+> 기본 5초 제한(P2028)에 걸린다. `{ timeout: 120_000 }` 으로 올려 뒀다.
 
 ## 3단계 — Vercel 프로젝트 2개 (사용자 + Claude)
 
@@ -60,7 +67,7 @@ DATABASE_URL="$NEON_DIRECT_URL" pnpm db:seed     # 데모 시드
 
 | 이름 | 값 |
 |---|---|
-| `DATABASE_URL` | `.env.neon` 의 **`NEON_POOLED_URL`** (pooler 붙은 쪽) |
+| `DATABASE_URL` | `.env.neon` 의 **`NEON_POOLED_URL`** (pooler 붙은 쪽, `sslmode=verify-full`) |
 
 > 외부 API 키(카카오·ODsay·토스·공공데이터)는 해당 Phase 착수 시점에 추가한다.
 > 목록은 [`.env.example`](../.env.example) 참조.

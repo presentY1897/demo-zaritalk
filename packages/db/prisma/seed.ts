@@ -65,7 +65,8 @@ async function main() {
     prisma.otpCode.deleteMany(),
     prisma.session.deleteMany(),
     prisma.user.deleteMany(),
-  ]);
+    // 원격 DB(Neon)는 왕복 지연이 커서 29개 deleteMany 가 기본 5초 트랜잭션 제한을 넘긴다.
+  ], { timeout: 120_000, maxWait: 30_000 });
 
   await prisma.user.create({
     data: { phone: "01000000000", name: "관리자", isAdmin: true },
