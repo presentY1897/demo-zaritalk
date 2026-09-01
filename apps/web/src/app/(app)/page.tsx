@@ -1,13 +1,21 @@
-"use client";
-
-import { Badge, Button, Card, Input, Sheet } from "@zari/ui";
+import { Badge, buttonRecipe, Card } from "@zari/ui";
 import type { BadgeTone } from "@zari/ui";
-import { useState } from "react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { css } from "styled-system/css";
+import { homeHrefFor } from "@/features/shell/tabs";
+import { currentUser, getActiveProfile } from "@/features/shell/session";
 
 /**
- * Phase 0 스캐폴딩 홈. T0.4(로그인)·T0.5(셸)가 들어오면 대체된다.
- * 지금은 T0.6 디자인 토큰·공용 컴포넌트가 실제로 붙는지 보여 주는 역할이다.
+ * `/` — 진입점 (T0.5).
+ *
+ * - **로그인**: 활성 프로필의 홈 탭으로 보낸다(`/landlord`·`/tenant`·`/realtor`·`/master`).
+ *   프로필이 하나도 없으면(온보딩 전) `/onboarding`(T0.4)으로.
+ * - **비로그인**: 아래 랜딩을 그대로 보여 준다. `/` 에 로그인 리다이렉트를 걸면
+ *   `e2e/smoke.spec.ts`(`/` 200 + h1) 가 깨지므로 이 화면은 `(protected)` 그룹 밖에 둔다.
+ *
+ * 원래 이 파일은 T0.6 토큰 확인용 스캐폴딩이었다(`app/page.tsx`). 셸이 생기면서
+ * `(app)/page.tsx` 로 옮기고, 로그인 시트는 T0.4 `/login` 이 가져가 링크로 대체했다.
  * 색은 전부 semantic 토큰만 쓴다 — 하드코딩 색상 0.
  */
 
@@ -79,21 +87,14 @@ const noticeStyle = css({
   textStyle: "caption",
   color: "text",
 });
-const sheetFieldsStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "field",
-});
 
-export default function HomePage() {
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [phone, setPhone] = useState("");
-
-  // 데모용 최소 검증 — 실제 인증은 T0.3/T0.4가 담당한다
-  const phoneError =
-    phone.length > 0 && !/^01[0-9]{8,9}$/.test(phone)
-      ? "숫자만, 010으로 시작하는 10~11자리로 입력해 주세요"
-      : undefined;
+export default async function HomePage() {
+  const user = await currentUser();
+  if (user) {
+    const active = await getActiveProfile(user);
+    // 온보딩 전(프로필 0개)이면 유형 선택부터 — /onboarding 은 T0.4 소관이다
+    redirect(active ? homeHrefFor(active.type) : "/onboarding");
+  }
 
   return (
     <main className={pageStyle}>
@@ -128,39 +129,10 @@ export default function HomePage() {
         흰 배경에서 대비 4.5:1 이상을 지키기 위한 규칙이다.
       </p>
 
-      <Button fullWidth size="lg" onClick={() => setSheetOpen(true)}>
-        데모 로그인
-      </Button>
-
-      <Sheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        title="데모 로그인"
-        description="전화번호를 넣으면 모의 OTP가 화면에 노출됩니다 (T0.4에서 연결)"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setSheetOpen(false)}>
-              취소
-            </Button>
-            <Button fullWidth disabled={!phone || Boolean(phoneError)}>
-              인증번호 받기
-            </Button>
-          </>
-        }
-      >
-        <div className={sheetFieldsStyle}>
-          <Input
-            label="전화번호"
-            required
-            inputMode="numeric"
-            placeholder="01012345678"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            error={phoneError}
-            helper="가입 시 이 번호로 기존 계약을 찾습니다"
-          />
-        </div>
-      </Sheet>
+      {/* /login 은 T0.4 담당 — 아직 머지 전이면 404 가 정상이다 */}
+      <Link href="/login" className={buttonRecipe({ size: "lg", fullWidth: true })}>
+        로그인하고 시작하기
+      </Link>
     </main>
   );
 }
