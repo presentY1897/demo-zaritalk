@@ -1,6 +1,7 @@
 {
   "name": "zari-demo",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20"
@@ -8,14 +9,26 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "typecheck": "turbo typecheck",
+    "typecheck": "turbo typecheck && tsc --noEmit",
     "db:generate": "pnpm --filter @zari/db db:generate",
     "db:migrate": "pnpm --filter @zari/db db:migrate",
     "db:push": "pnpm --filter @zari/db db:push",
-    "db:studio": "pnpm --filter @zari/db db:studio"
+    "db:studio": "pnpm --filter @zari/db db:studio",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:db": "node scripts/setup-test-db.mjs",
+    "test:e2e": "playwright test",
+    "db:seed": "pnpm --filter @zari/db db:seed"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.4.0",
+    "@types/pg": "^8.23.1",
+    "dotenv": "^17.4.2",
+    "pg": "^8.23.0",
+    "tsx": "^4",
     "turbo": "^2.10.12",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   }
 }

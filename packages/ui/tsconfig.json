@@ -1,4 +1,4 @@
 {
-  "extends": "@zari/config/tsconfig/base.json",
+  "extends": "@zari/config/tsconfig/nextjs.json",
   "include": ["src"]
 }

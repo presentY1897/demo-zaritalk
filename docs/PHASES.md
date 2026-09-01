@@ -1,18 +1,17 @@
 # Phase 구성 — task 목록·완료 조건
 
-> 구현 순서 제안([D6](./DECISIONS.md#-d6-phase-순서) 결정 대기). task 파일 규칙은 [tasks/README.md](./tasks/README.md) 참조.
+> 구현 순서는 [D6 확정](./DECISIONS.md#-d6-phase-순서)안 그대로. task 파일 규칙은 [tasks/README.md](./tasks/README.md) 참조.
 > 상태: ⬜ 미착수 · 🔨 진행중 · ✅ 완료 — task 파일과 이 표를 함께 갱신한다.
 
 ## Phase 0 — 기반 공사
 
-> 선행: D1(API 스타일)·D5(웹 셸)·D8(테스트 스택) 결정 — T0.2·T0.4부터 적용
 > 모델: User · Session · OtpCode · Profile · RealtorDetail · MasterDetail
 
 | task | 내용 | 상태 |
 |---|---|---|
 | [T0.0](./tasks/t0.0-db-seed.md) | DB 마이그레이션·데모 시드 (a29e42c) | ✅ |
 | [T0.1](./tasks/t0.1-deploy.md) | 배포 파이프라인 | 🔨 |
-| [T0.2](./tasks/t0.2-test-infra.md) | 테스트 인프라 (D8 확정 후) | ⬜ |
+| [T0.2](./tasks/t0.2-test-infra.md) | 테스트 인프라 | ✅ |
 | [T0.3](./tasks/t0.3-auth-api.md) | 인증 API | ⬜ |
 | [T0.4](./tasks/t0.4-login-onboarding.md) | 로그인·온보딩 화면 | ⬜ |
 | [T0.5](./tasks/t0.5-shell-profile.md) | 웹 셸 + 프로필 전환 | ⬜ |
@@ -47,7 +46,7 @@
 
 ## Phase 2 — 세입자 결제·환급·민원
 
-> 선행: 토스페이먼츠 테스트 키(사용자), D3(업로드 저장소) 결정
+> 선행: 토스페이먼츠 테스트 키(사용자)
 > 모델: TossPayment · RentPayment · RefundApplication · Complaint · ComplaintMessage
 
 | task | 내용 | 상태 |
@@ -101,13 +100,12 @@
 
 ## Phase 5 — 마스터 매칭
 
-> 선행: D4(pull 피드 vs push) 결정
-> 모델: WorkOrder · WorkOrderQuote (+ Complaint 연동)
+> 모델: WorkOrder · WorkOrderQuote · WorkOrderTarget · MasterDetail.plan (+ Complaint 연동)
 
 | task | 내용 | 상태 |
 |---|---|---|
 | [T5.1](./tasks/t5.1-workorder.md) | 작업 의뢰 생성·민원 전환 | ⬜ |
-| [T5.2](./tasks/t5.2-master-feed.md) | 마스터 의뢰 피드 (D4: pull 방식 제안) | ⬜ |
+| [T5.2](./tasks/t5.2-master-feed.md) | 마스터 의뢰 피드 — pull + 유료 push 추천 | ⬜ |
 | [T5.3](./tasks/t5.3-quote.md) | 견적 제안·수락 | ⬜ |
 
 **Phase 완료 조건**
@@ -116,7 +114,6 @@
 
 ## Phase 6 — 그로스 마무리·대시보드
 
-> 선행: D2(A/B 소재) 결정
 > 모델: TrackingEvent · AbAssignment
 
 | task | 내용 | 상태 |

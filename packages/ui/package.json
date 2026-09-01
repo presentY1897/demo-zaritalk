@@ -6,14 +6,24 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./theme": "./src/theme.ts"
+    "./theme": "./src/theme.ts",
+    "./components": "./src/components/index.ts",
+    "./tracking": "./src/tracking.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@pandacss/dev": "^1.12.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
     "@zari/config": "workspace:^",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "typescript": "^7.0.2"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }
