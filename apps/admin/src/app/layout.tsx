@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { css } from "styled-system/css";
+import { AdminShell } from "./_shell/AdminShell";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -13,7 +14,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko">
       <body className={css({ bg: "bg.page", color: "text", minH: "100dvh" })}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {/* 데스크톱 사이드바 셸(T0.5) — 업무 화면은 각 Phase 에서 세트로 붙는다(D7) */}
+          <AdminShell>{children}</AdminShell>
+        </Providers>
       </body>
     </html>
   );
