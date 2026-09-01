@@ -30,7 +30,7 @@
 
 ## 구현 순서 (제안 — [D6](./DECISIONS.md#-d6-phase-순서) 결정 대기)
 
-§ 번호는 [SPEC.md](./SPEC.md) 목차의 기능 스펙 파일.
+§ 번호는 [SPEC.md](./SPEC.md) 목차의 기능 스펙 파일. **task 분해·완료 기준(DoD)·최소/통합 테스트는 [docs/tasks/](./tasks/README.md)** — Phase별 phase-N.md에서 체크박스로 추적.
 
 | Phase | 내용 |
 |---|---|

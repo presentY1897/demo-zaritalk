@@ -14,6 +14,7 @@
 | D5 | 웹(모바일) 셸 | ⏳ 결정 대기 |
 | D6 | Phase 순서 | ⏳ 결정 대기 |
 | D7 | 백오피스 진행 방식 | ⏳ 결정 대기 |
+| D8 | 테스트 스택 | ⏳ 결정 대기 |
 
 ---
 
@@ -74,3 +75,11 @@ Vercel + Neon Postgres + GitHub Actions CI를 Phase 0에서 먼저 세우고, �
 - **제안**: 관련 기능과 같은 Phase에서 세트로 구현 — 환급 심사는 Phase 2, 신고 처리는 Phase 4. 기능마다 "사용자 화면 + 운영 화면"으로 완결.
 - **대안**: 어드민을 별도 Phase로 몰아서 구현.
 - **추천**: 세트 구현.
+
+## ⏳ D8. 테스트 스택
+
+- **제안**: **Vitest**(단위·API — Route Handler 직접 호출, 테스트 전용 DB `zari_test`) + **Playwright**(통합 E2E — Phase별 핵심 여정). 외부 API는 단위에서 mock, E2E는 토스 테스트모드만 실호출.
+- **커버리지 기준**: %가 아니라 두 줄 — 돈·상태 전이 로직(원장·결제 confirm·환급 계산·매칭·A/B 배정)은 반드시 단위 테스트, Phase별 핵심 여정 1~2개는 반드시 E2E. task별 상세는 [docs/tasks/](./tasks/README.md).
+- **대안**: Jest(구성 무거움), E2E 생략(데모 신뢰도 하락).
+- **추천**: Vitest + Playwright.
+
