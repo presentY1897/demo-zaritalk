@@ -12,10 +12,10 @@
 | [T0.0](./tasks/t0.0-db-seed.md) | DB 마이그레이션·데모 시드 (a29e42c) | ✅ |
 | [T0.1](./tasks/t0.1-deploy.md) | 배포 파이프라인 | 🔨 |
 | [T0.2](./tasks/t0.2-test-infra.md) | 테스트 인프라 | ✅ |
-| [T0.3](./tasks/t0.3-auth-api.md) | 인증 API | ⬜ |
+| [T0.3](./tasks/t0.3-auth-api.md) | 인증 API | ✅ |
 | [T0.4](./tasks/t0.4-login-onboarding.md) | 로그인·온보딩 화면 | ⬜ |
 | [T0.5](./tasks/t0.5-shell-profile.md) | 웹 셸 + 프로필 전환 | ⬜ |
-| [T0.6](./tasks/t0.6-ui-tokens.md) | packages/ui 디자인 토큰 | ⬜ |
+| [T0.6](./tasks/t0.6-ui-tokens.md) | packages/ui 디자인 토큰 | ✅ |
 | [T0.7](./tasks/t0.7-tracking.md) | 트래킹 코어 | ⬜ |
 
 **Phase 완료 조건**
