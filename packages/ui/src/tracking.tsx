@@ -48,7 +48,8 @@ export type KnownTrackEventName =
   | "profile_switch_open"
   | "profile_switch_complete"
   | "building_create_complete"
-  | "unit_create_complete";
+  | "unit_create_complete"
+  | "ledger_filter_change";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.
