@@ -49,6 +49,12 @@ export const ADMIN_MENU: AdminMenuGroup[] = [
         owner: "T4.2",
         description: "커뮤니티 신고 대기 목록 — 블라인드·기각",
       },
+      {
+        href: "/cron",
+        label: "원장 크론",
+        owner: "T1.4",
+        description: "일일 원장 작업 수동 실행 — 당월 청구 생성·연체 전환·이월·만기 알림(멱등)",
+      },
     ],
   },
   {

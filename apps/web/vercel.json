@@ -2,5 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@zari/web..."
+  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@zari/web...",
+  "crons": [
+    {
+      "path": "/api/cron/daily",
+      "schedule": "0 18 * * *"
+    }
+  ]
 }
