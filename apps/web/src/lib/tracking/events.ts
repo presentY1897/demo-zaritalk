@@ -43,6 +43,12 @@ export const TRACK_EVENTS = {
   BUILDING_CREATE_COMPLETE: "building_create_complete",
   /** 호실 등록 성공 — props: `{ buildingId }` (T1.1) */
   UNIT_CREATE_COMPLETE: "unit_create_complete",
+  /** 임대인 홈 대시보드 노출 — props: `{ overdueCount, expiringCount, inboxCount }` (T1.9) */
+  LANDLORD_HOME_VIEW: "landlord_home_view",
+  /** 홈의 연체 청구 행 클릭 — props: `{ leaseId, chargeId, outstanding }` (T1.9) */
+  LANDLORD_OVERDUE_CLICK: "landlord_overdue_click",
+  /** 홈의 만기 임박 계약 행 클릭 — props: `{ leaseId, daysLeft }` (T1.9) */
+  LANDLORD_EXPIRY_CLICK: "landlord_expiry_click",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;

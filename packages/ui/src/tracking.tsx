@@ -48,7 +48,10 @@ export type KnownTrackEventName =
   | "profile_switch_open"
   | "profile_switch_complete"
   | "building_create_complete"
-  | "unit_create_complete";
+  | "unit_create_complete"
+  | "landlord_home_view"
+  | "landlord_overdue_click"
+  | "landlord_expiry_click";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.
