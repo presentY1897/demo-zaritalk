@@ -103,6 +103,20 @@ DB가 안 붙으면 다른 라우트는 **빈 500** 만 내서 밖에서 원인�
 
 `target` 은 호스트와 DB 이름만 보여 준다 — 사용자·비밀번호는 응답에 넣지 않는다.
 
+## 스키마·시드가 바뀌면 (Phase 마다 확인)
+
+로컬 테스트가 전부 통과해도 **라이브는 따로 갱신해야 한다.** Phase 1 에서 시드 연체료를
+고쳤는데 Neon 은 그 전에 시드해서 라이브 대시보드만 옛 금액을 보여준 적이 있다.
+
+| 바뀐 것 | 할 일 |
+|---|---|
+| `schema.prisma` (마이그레이션 추가) | `DATABASE_URL="$NEON_DIRECT_URL" pnpm db:deploy` |
+| `seed.ts` 의 **구조**(새 모델·새 시나리오) | 위 + `pnpm db:seed` (전체 재생성 — 데모 중 쌓인 데이터가 지워진다) |
+| `seed.ts` 의 **값 하나**(금액·날짜 정정) | 재시드 대신 해당 행만 `UPDATE` 하는 쪽이 안전하다 |
+| 새 환경변수 | `vercel env add <NAME> production --cwd apps/web` (preview·development 도) + 재배포 |
+
+반영 후 `GET /api/health` 와 해당 화면 숫자를 라이브에서 직접 확인한다.
+
 ## 알아둘 것
 
 - **Preview 배포도 같은 Neon DB를 본다.** 브랜치별 DB 분리는 데모 범위 밖이다 —

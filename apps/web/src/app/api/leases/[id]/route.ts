@@ -123,13 +123,21 @@ export async function PATCH(request: Request, context: Context): Promise<Respons
         dueDate: true,
         totalDue: true,
         paidAmount: true,
-        _count: { select: { payments: true } },
+        _count: { select: { payments: true, messageLogs: true } },
       },
     });
 
-    // 종료일 이후의 달은 받을 근거가 없다 — 단, 납부 기록이 남은 청구는 지우지 않는다
+    /**
+     * 종료일 이후의 달은 받을 근거가 없다. 단 두 가지는 지우지 않는다:
+     * - **납부 기록이 있는 청구** — 받은 돈의 근거가 사라진다
+     * - **고지서를 보낸 청구** — `MessageLog.chargeId` 는 optional FK 라 SetNull 이다.
+     *   지우면 이미 세입자에게 나간 공개 고지서(T1.8)가 금액을 잃는다.
+     */
     const removable = charges.filter(
-      (charge) => charge.dueDate.getTime() > endDate.getTime() && charge._count.payments === 0,
+      (charge) =>
+        charge.dueDate.getTime() > endDate.getTime() &&
+        charge._count.payments === 0 &&
+        charge._count.messageLogs === 0,
     );
     if (removable.length > 0) {
       await tx.rentCharge.deleteMany({ where: { id: { in: removable.map((c) => c.id) } } });

@@ -210,6 +210,42 @@ test("계약 종료 — 납부 기록이 있는 청구는 종료일 이후여도
   expect(await prisma.rentCharge.findUnique({ where: { id: paid.id } })).not.toBeNull();
 });
 
+test("계약 종료 — 고지서를 보낸 청구는 종료일 이후여도 남긴다", async () => {
+  // MessageLog.chargeId 는 optional FK(SetNull) 라 청구를 지우면 이미 세입자에게
+  // 나간 공개 고지서(T1.8)가 금액을 잃는다.
+  const me = await createLandlordWithUnit();
+  const { lease } = await createLeaseWithCharge(me.unit.id, { withCharge: false });
+  const notified = await prisma.rentCharge.create({
+    data: {
+      leaseId: lease.id,
+      year: 2030,
+      month: 2,
+      dueDate: utcDate(2030, 2, 5),
+      rentAmount: 650_000,
+      maintenanceAmount: 50_000,
+      totalDue: 700_000,
+      paidAmount: 0,
+      status: "SCHEDULED",
+    },
+  });
+  await prisma.messageLog.create({
+    data: {
+      kind: "RENT_NOTICE",
+      toPhone: "01099990000",
+      title: "2030년 2월 월세 고지서",
+      body: "테스트 고지서",
+      token: `end-notice-${notified.id}`,
+      leaseId: lease.id,
+      chargeId: notified.id,
+    },
+  });
+  await loginAs(me.user.id);
+
+  const body = await (await patch(lease.id, { status: "ENDED" })).json();
+  expect(body.settlement.removedScheduledCharges).toBe(0);
+  expect(await prisma.rentCharge.findUnique({ where: { id: notified.id } })).not.toBeNull();
+});
+
 test("이미 종료된 계약을 또 종료하면 409", async () => {
   const me = await createLandlordWithUnit();
   const { lease } = await createLeaseWithCharge(me.unit.id, { status: "ENDED" });
