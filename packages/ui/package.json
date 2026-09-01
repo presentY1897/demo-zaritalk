@@ -11,7 +11,9 @@
     "./tracking": "./src/tracking.tsx"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "build": "panda codegen",
+    "panda": "panda codegen",
+    "typecheck": "panda codegen && tsc --noEmit"
   },
   "devDependencies": {
     "@pandacss/dev": "^1.12.0",
