@@ -467,3 +467,47 @@ describe("계약 만기 창", () => {
     expect(isExpiringWithin(utcDate(2027, 2, 28), asOf)).toBe(false);
   });
 });
+
+/**
+ * 시드(`packages/db/prisma/seed.ts`)의 8월 청구는 화면·문서에 그대로 노출되는 숫자다
+ * (T1.5 연체 배지, T1.9 "연체 1건 1,015,500원"). 크론은 확정된 청구를 다시 계산하지
+ * 않으므로, 시드 값이 엔진 규칙에서 벗어나도 런타임에는 아무도 눈치채지 못한다.
+ * 여기서 못 박아 둔다 — 한쪽이 바뀌면 이 테스트가 깨진다.
+ */
+describe("시드 시나리오 — 2026-08 연체 청구가 엔진 규칙과 일치한다", () => {
+  const SEED_JULY_OUTSTANDING = 300_000; // 7월 700,000 중 400,000 부분납
+
+  test("연체료는 이월액 기준 일할과 같다", () => {
+    const overdueDays = calcOverdueDays(utcDate(2026, 7, 5), utcDate(2026, 8, 5));
+    expect(overdueDays).toBe(31);
+
+    expect(
+      calcLateFee({
+        base: SEED_JULY_OUTSTANDING,
+        lateFeeRatePct: SEED_LEASE.lateFeeRatePct,
+        overdueDays,
+      }),
+    ).toBe(15_500);
+  });
+
+  test("총액이 시드에 박힌 1,015,500 과 같다", () => {
+    const draft = buildChargeDraft({
+      lease: SEED_LEASE,
+      year: 2026,
+      month: 8,
+      previousCharge: {
+        dueDate: utcDate(2026, 7, 5),
+        totalDue: 700_000,
+        paidAmount: 400_000,
+      },
+      asOf: utcDate(2026, 8, 20),
+    });
+
+    expect(draft).toMatchObject({
+      carriedOverAmount: SEED_JULY_OUTSTANDING,
+      lateFeeAmount: 15_500,
+      totalDue: 1_015_500,
+      status: "OVERDUE",
+    });
+  });
+});

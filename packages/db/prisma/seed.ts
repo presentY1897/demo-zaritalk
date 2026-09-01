@@ -238,8 +238,11 @@ async function main() {
       rentAmount: 650_000,
       maintenanceAmount: 50_000,
       carriedOverAmount: 300_000,
-      lateFeeAmount: 15_000,
-      totalDue: 1_015_000,
+      // 연체료는 원장 엔진(T1.4) 규칙 그대로다 —
+      // floor(이월 300,000 × rate 5% × 연체 31일(7/5→8/5) / 30) = 15,500.
+      // 이 값이 엔진과 어긋나면 `lib/rent/ledger.test.ts` 의 시드 시나리오 테스트가 깨진다.
+      lateFeeAmount: 15_500,
+      totalDue: 1_015_500,
       paidAmount: 0,
       status: ChargeStatus.OVERDUE,
     },
