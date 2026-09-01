@@ -49,7 +49,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   const session = await prisma.session.findUnique({
     where: { token },
-    include: { user: { include: { profiles: true } } },
+    include: { user: { include: { profiles: { orderBy: { createdAt: "asc" } } } } },
   });
   if (!session || session.expiresAt < new Date()) return null;
   return session.user;
@@ -65,6 +65,19 @@ export async function getActiveProfile(user: SessionUser): Promise<Profile | nul
 export async function setActiveProfile(profileId: string): Promise<void> {
   const store = await cookies();
   store.set(ACTIVE_PROFILE_COOKIE, profileId, { ...cookieOptions, httpOnly: false });
+}
+
+/**
+ * 로그인 처리 — 세션 발급 + 활성 프로필 쿠키 초기화(T0.3).
+ * `preferredType` 이 있으면 그 유형 프로필을, 없으면 첫 프로필을 활성으로 잡는다.
+ * 프로필이 하나도 없으면(온보딩 전) 활성 프로필 쿠키를 건드리지 않는다.
+ */
+export async function loginUser(user: SessionUser, preferredType?: ProfileType): Promise<string> {
+  const token = await createSession(user.id);
+  const profile =
+    (preferredType && user.profiles.find((p) => p.type === preferredType)) ?? user.profiles[0];
+  if (profile) await setActiveProfile(profile.id);
+  return token;
 }
 
 export type { Profile, ProfileType, User };
