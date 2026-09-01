@@ -49,7 +49,12 @@ export type KnownTrackEventName =
   | "profile_switch_complete"
   | "building_create_complete"
   | "unit_create_complete"
-  | "ledger_filter_change";
+  | "ledger_filter_change"
+  | "lease_create_complete"
+  | "lease_end_complete"
+  | "charge_sheet_open"
+  | "payment_record_complete"
+  | "payment_cancel_complete";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

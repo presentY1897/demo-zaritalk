@@ -45,6 +45,16 @@ export const TRACK_EVENTS = {
   UNIT_CREATE_COMPLETE: "unit_create_complete",
   /** 임대장부에서 연도·건물 필터를 바꿨을 때 — props: `{ year, buildingId }` (T1.6) */
   LEDGER_FILTER_CHANGE: "ledger_filter_change",
+  /** 계약 등록 성공 — props: `{ unitId, chargeCreated }` (T1.2) */
+  LEASE_CREATE_COMPLETE: "lease_create_complete",
+  /** 계약 종료 처리 성공 — props: `{ leaseId, removedCharges, remainingUnpaid }` (T1.2) */
+  LEASE_END_COMPLETE: "lease_end_complete",
+  /** 청구 상세 시트 열기 — props: `{ month, status }` (T1.5) */
+  CHARGE_SHEET_OPEN: "charge_sheet_open",
+  /** 납부 기록 성공(받음 체크·가상 입금) — props: `{ method, amount, status }` (T1.5) */
+  PAYMENT_RECORD_COMPLETE: "payment_record_complete",
+  /** 납부 기록 취소(오기록 되돌리기) — props: `{ method, amount }` (T1.5) */
+  PAYMENT_CANCEL_COMPLETE: "payment_cancel_complete",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;
