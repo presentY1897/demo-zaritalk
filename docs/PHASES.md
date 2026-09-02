@@ -76,10 +76,10 @@
 
 | task | 내용 | 상태 |
 |---|---|---|
-| [T3.1](./tasks/t3.1-listing-create.md) | 매물 등록 | ⬜ |
+| [T3.1](./tasks/t3.1-listing-create.md) | 매물 등록 | ✅ |
 | [T3.2](./tasks/t3.2-map-search.md) | 지도 탐색 | ⬜ |
 | [T3.3](./tasks/t3.3-listing-detail.md) | 매물 상세 + SEO | ⬜ |
-| [T3.4](./tasks/t3.4-workplace.md) | 근무지 관리 | ⬜ |
+| [T3.4](./tasks/t3.4-workplace.md) | 근무지 관리 | ✅ |
 | [T3.5](./tasks/t3.5-commute.md) | 통근시간 조회 | ⬜ |
 | [T3.6](./tasks/t3.6-brokerage-request.md) | 중개 요청·반경 매칭 | ⬜ |
 | [T3.7](./tasks/t3.7-realtor-inbox.md) | 중개인 수신함·수락 | ⬜ |
@@ -95,8 +95,8 @@
 
 | task | 내용 | 상태 |
 |---|---|---|
-| [T4.1](./tasks/t4.1-community.md) | 커뮤니티 보드 | ⬜ |
-| [T4.2](./tasks/t4.2-moderation.md) | 신고·모더레이션 | ⬜ |
+| [T4.1](./tasks/t4.1-community.md) | 커뮤니티 보드 | ✅ |
+| [T4.2](./tasks/t4.2-moderation.md) | 신고·모더레이션 | ✅ |
 | [T4.3](./tasks/t4.3-deals-sync.md) | 실거래가 수집 배치 | ⬜ |
 | [T4.4](./tasks/t4.4-deals-view.md) | 실거래가 조회·알림 | ⬜ |
 
@@ -112,11 +112,13 @@
 |---|---|---|
 | [T5.1](./tasks/t5.1-workorder.md) | 작업 의뢰 생성·민원 전환 | ✅ |
 | [T5.2](./tasks/t5.2-master-feed.md) | 마스터 의뢰 피드 — pull + 유료 push 추천 | ✅ |
-| [T5.3](./tasks/t5.3-quote.md) | 견적 제안·수락 | ⬜ |
+| [T5.3](./tasks/t5.3-quote.md) | 견적 제안·수락 | ✅ |
 
 **Phase 완료 조건**
-- [ ] 전 task ✅ (견적 수락 트랜잭션 단위 테스트 포함)
-- [ ] E2E: 민원→작업→견적→해결 3역할 여정 green
+- [x] 전 task ✅ (견적 수락 트랜잭션 단위 테스트 포함)
+- [x] E2E: 민원→작업→견적→해결 3역할 여정 green
+
+**Phase 5 완료 (2026-09-02).**
 
 ## Phase 6 — 그로스 마무리·대시보드
 

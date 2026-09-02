@@ -18,7 +18,19 @@ import { createLeaseSchema, type CreateLeaseInput } from "./schema";
 import type { UnitOptionDto } from "./types";
 
 const formStyle = css({ display: "flex", flexDirection: "column", gap: "field" });
-const twoColStyle = css({ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "2" });
+/**
+ * 두 칸 나란히. **`minmax(0, 1fr)` 이어야 한다** — 기본 `1fr` 은 `minmax(auto, 1fr)` 이라
+ * 칸이 내용의 최소 폭 아래로 못 줄어든다. `input[type="date"]` 의 최소 폭은 브라우저가
+ * 날짜 글자와 달력 아이콘의 **실제 폭**으로 정하므로 폰트가 조금만 넓어도 393px 셸을 뚫고,
+ * 그러면 크로뮴 모바일 에뮬레이션이 화면을 축소해 클릭 좌표계가 어긋난다
+ * (CI 에서만 E2E 가 죽던 원인 — `docs/tasks/t0.2-test-infra.md` 참고).
+ */
+const twoColStyle = css({
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "2",
+  "& > *": { minWidth: 0 },
+});
 const fieldStyle = css({ display: "flex", flexDirection: "column", gap: "1.5" });
 const labelStyle = css({ textStyle: "label", color: "text" });
 const selectStyle = css({

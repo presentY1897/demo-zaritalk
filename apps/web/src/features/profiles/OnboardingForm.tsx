@@ -44,7 +44,15 @@ const titleStyle = css({ textStyle: "headline", color: "text" });
 const leadStyle = css({ textStyle: "body", color: "text.muted" });
 const sectionStyle = css({ display: "flex", flexDirection: "column", gap: "field" });
 const sectionTitleStyle = css({ textStyle: "subtitle", color: "text" });
-const typeListStyle = css({ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "2" });
+// `minmax(0, 1fr)` — 기본 `1fr`(= `minmax(auto, 1fr)`)은 칸이 내용 최소 폭 아래로 못 줄어
+// 폰트에 따라 480px 셸을 가로로 뚫는다. 넘치면 크로뮴이 화면을 축소해 클릭 좌표가 어긋난다
+// (`docs/tasks/t0.2-test-infra.md` 참고).
+const typeListStyle = css({
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "2",
+  "& > *": { minWidth: 0 },
+});
 const typeCardStyle = css({
   display: "flex",
   flexDirection: "column",
