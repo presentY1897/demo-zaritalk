@@ -48,6 +48,36 @@ async function loginAsTenant(page: Page) {
   await expect(page).toHaveURL("/tenant");
 }
 
+/**
+ * 가로 오버플로 감시 — **이 스펙이 CI 에서만 죽던 진짜 원인**이라 클릭 전에 먼저 잡는다.
+ *
+ * 화면이 393px 모바일 셸보다 넓어지면 크로뮴 모바일 에뮬레이션이 화면을 축소한다
+ * (레이아웃 뷰포트 393→406, page scale ≈ 0.97). 그러면 Playwright 가 CSS 좌표로 계산한
+ * 클릭 지점과 크로뮴이 실제로 이벤트를 떨어뜨리는 지점이 **스크롤한 만큼 벌어져서**,
+ * 페이지 아래쪽 버튼을 누르면 옆의 `<main>` 이나 하단 탭바가 대신 맞는다 —
+ * Playwright 는 이를 "intercepts pointer events" 로 보고 영원히 재시도하다 예산을 태운다.
+ * (원인은 `input[type="date"]` 두 칸이었다. 자세한 경위는
+ * `docs/tasks/t0.2-test-infra.md` 의 "CI 가 로컬과 다른 점" 표 참고.)
+ *
+ * 여기서 걸리면 120초짜리 클릭 타임아웃 대신 **어느 화면이 몇 px 넘쳤는지** 바로 보인다.
+ */
+async function expectFitsShell(page: Page, where: string) {
+  const shellWidth = page.viewportSize()?.width ?? 0;
+  // `window`/`document` 대신 `globalThis` — e2e 는 DOM 타입이 없는 node tsconfig 로 타입 검사한다
+  // (`e2e/shell.spec.ts` 와 같은 이유·같은 방식).
+  const layout = await page.evaluate(() => {
+    const win = globalThis as unknown as {
+      innerWidth: number;
+      document: { documentElement: { scrollWidth: number } };
+    };
+    return { innerWidth: win.innerWidth, scrollWidth: win.document.documentElement.scrollWidth };
+  });
+  expect(
+    layout,
+    `${where}: 가로로 셸(${shellWidth}px)을 뚫었다 — 모바일 축소가 걸려 클릭 좌표가 어긋난다`,
+  ).toEqual({ innerWidth: shellWidth, scrollWidth: shellWidth });
+}
+
 /** 시드 관리자 계정으로 세션을 한 줄 만들어 어드민 API 컨텍스트를 연다 */
 async function openAdminApi(baseURL: string): Promise<{ api: APIRequestContext; token: string }> {
   const admins = await queryTestDb<{ id: string }>(
@@ -88,6 +118,7 @@ test("E2E① 계산기 → 신청서 → 제출 → 보완요청 → 추가 업�
   await page.getByTestId("refund-monthly-rent").fill("500000");
   await page.getByTestId("refund-start-date").fill(`${LAST_YEAR}-01-01`);
   await page.getByTestId("refund-end-date").fill(`${LAST_YEAR}-12-31`);
+  await expectFitsShell(page, "/refund/calculator");
   await page.getByTestId("refund-submit").click();
   await expect(page.getByTestId("refund-total-credit")).toHaveText("1,020,000원");
 
@@ -106,6 +137,7 @@ test("E2E① 계산기 → 신청서 → 제출 → 보완요청 → 추가 업�
   // 서류를 올리려면 먼저 임시저장해야 한다(업로드는 신청 id 를 요구한다)
   await expect(page.getByTestId("refund-apply-upload-locked")).toBeVisible();
   await expect(page.getByTestId("refund-apply-submit")).toBeDisabled();
+  await expectFitsShell(page, "/tenant/refund/apply");
 
   // ── ③ 임시저장(DRAFT) → 서류 업로드
   await page.getByTestId("refund-apply-save").click();
@@ -281,6 +313,7 @@ test("E2E② 업로드 제한(타입·크기)은 화면에서 막고, 남의 신
   await page.getByTestId("refund-apply-monthly-rent").fill("500000");
   await page.getByTestId("refund-apply-start-date").fill(`${LAST_YEAR}-01-01`);
   await page.getByTestId("refund-apply-end-date").fill(`${LAST_YEAR}-12-31`);
+  await expectFitsShell(page, "/tenant/refund/apply");
   await page.getByTestId("refund-apply-save").click();
   await expect(page.getByTestId("refund-apply-saved")).toBeVisible();
 

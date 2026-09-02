@@ -57,7 +57,22 @@ const ineligibleStyle = css({
   color: "warning.text",
 });
 const formStyle = css({ display: "flex", flexDirection: "column", gap: "field" });
-const twoColStyle = css({ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "2" });
+/**
+ * 날짜 두 칸 나란히. **`minmax(0, 1fr)` 이어야 한다** — 기본 `1fr` 은 `minmax(auto, 1fr)` 이라
+ * 칸이 내용의 최소 폭 아래로 못 줄어드는데, `input[type="date"]` 의 최소 폭은 브라우저가
+ * **날짜 글자(MM/DD/YYYY)와 달력 아이콘의 실제 폭**으로 정한다. 즉 폰트가 조금만 넓어도
+ * 두 칸이 393px 모바일 셸을 뚫고, 그러면 크로뮴 모바일 에뮬레이션이 화면을 축소해
+ * (레이아웃 뷰포트 393→406, page scale ≈ 0.97) 좌표계가 어긋난다.
+ * 그 상태에서는 스크롤이 깊은 요소를 클릭할 때 실제 이벤트가 엉뚱한 곳에 떨어진다 —
+ * CI 에서만 E2E 가 죽던 원인이 정확히 이것이었다(`docs/tasks/t0.2-test-infra.md` 표 참고).
+ * 자식의 `minW: 0` 도 같은 이유로 함께 둔다.
+ */
+const twoColStyle = css({
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "2",
+  "& > *": { minWidth: 0 },
+});
 const hintStyle = css({ textStyle: "caption", color: "text.muted", fontFamily: "numeric" });
 const errorBoxStyle = css({
   bg: "danger.subtle",
