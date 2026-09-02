@@ -99,7 +99,12 @@ export type KnownTrackEventName =
   | "listing_update_complete"
   | "listing_status_change"
   | "workplace_create_complete"
-  | "workplace_delete_complete";
+  | "workplace_delete_complete"
+  | "brokerage_preview_view"
+  | "brokerage_request_complete"
+  | "brokerage_inbox_view"
+  | "brokerage_request_view"
+  | "brokerage_respond_complete";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

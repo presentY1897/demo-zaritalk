@@ -2,7 +2,7 @@
 
 /**
  * `/landlord/units/[id]` 화면 본체 (T1.1) — 현재 계약 카드 · 과거 이력 · 수납 요약,
- * 공실이면 「매물 등록」(T3.1)·「중개 요청」(T3.6) 진입 버튼.
+ * 공실이면 「매물 등록」(T3.1)·「중개 요청」(T3.6 `/landlord/brokerage?unitId=`) 진입 버튼.
  *
  * 계약 등록·상세(T1.2)·수납(T1.5)·매물 관리(T3.1 `/landlord/units/[id]/listing`)로 넘어가는
  * 진입점이 여기 있다.
@@ -205,11 +205,12 @@ export function UnitDetailView({ initialUnit }: { initialUnit: UnitDetailDto }) 
               >
                 매물 등록
               </Button>
-              {/* 중개 요청은 T3.6 의 `/landlord/brokerage`(T0.5 확정 경로)로 보낸다 */}
+              {/* 중개 요청은 T3.6 의 `/landlord/brokerage`(T0.5 확정 경로).
+                  `?unitId=` 를 달아 보내면 그 화면이 이 호실을 고른 채 요청 시트를 연다 */}
               <Button
                 fullWidth
                 variant="secondary"
-                onClick={() => router.push("/landlord/brokerage")}
+                onClick={() => router.push(`/landlord/brokerage?unitId=${unit.id}`)}
                 data-testid="brokerage-request"
               >
                 중개 요청
@@ -225,9 +226,6 @@ export function UnitDetailView({ initialUnit }: { initialUnit: UnitDetailDto }) 
                 계약 등록
               </Button>
             </div>
-            <p className={css({ textStyle: "caption", color: "text.muted", mt: "2" })}>
-              중개 요청은 T3.6 에서 열립니다.
-            </p>
           </div>
         </Card>
       )}
