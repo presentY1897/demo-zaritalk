@@ -61,7 +61,12 @@ export type KnownTrackEventName =
   | "tenant_lease_accept_view"
   | "tenant_lease_accept_complete"
   | "tenant_lease_decline_complete"
-  | "tenant_home_view";
+  | "tenant_home_view"
+  | "pay_checkout_view"
+  | "pay_request_start"
+  | "pay_confirm_complete"
+  | "pay_confirm_fail"
+  | "pay_history_view";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.
