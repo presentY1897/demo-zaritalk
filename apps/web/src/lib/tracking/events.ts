@@ -69,6 +69,10 @@ export const TRACK_EVENTS = {
   TENANT_LEASE_DECLINE_COMPLETE: "tenant_lease_decline_complete",
   /** 세입자 홈 노출 — props: `{ leaseCount, pendingCount, outstanding }` (T1.3) */
   TENANT_HOME_VIEW: "tenant_home_view",
+  /** 환급 계산기 계산 실행 성공 — props: `{ grossSalary, monthlyRent, months, years, creditAmount, creditRatePercent }` (T2.3) */
+  REFUND_CALC_SUBMIT: "refund_calc_submit",
+  /** 환급 계산기 「신청하기」 CTA 클릭 — props: `{ source, loggedIn, creditAmount, years }` (T2.3) */
+  REFUND_CTA_CLICK: "refund_cta_click",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;
