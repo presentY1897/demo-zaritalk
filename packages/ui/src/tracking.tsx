@@ -63,7 +63,11 @@ export type KnownTrackEventName =
   | "tenant_lease_decline_complete"
   | "tenant_home_view"
   | "refund_calc_submit"
-  | "refund_cta_click";
+  | "refund_cta_click"
+  | "complaint_create_complete"
+  | "complaint_thread_view"
+  | "complaint_message_send"
+  | "complaint_status_change";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

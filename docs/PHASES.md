@@ -57,10 +57,10 @@
 |---|---|---|
 | [T2.1](./tasks/t2.1-toss-api.md) | 토스 결제 API | ⬜ |
 | [T2.2](./tasks/t2.2-pay-ui.md) | 결제 UI | ⬜ |
-| [T2.3](./tasks/t2.3-refund-calc.md) | 환급 계산기 | ⬜ |
+| [T2.3](./tasks/t2.3-refund-calc.md) | 환급 계산기 | ✅ |
 | [T2.4](./tasks/t2.4-refund-apply.md) | 환급 신청 | ⬜ |
 | [T2.5](./tasks/t2.5-refund-review.md) | 어드민 환급 심사 큐 | ⬜ |
-| [T2.6](./tasks/t2.6-complaint.md) | 민원 접수·스레드 | ⬜ |
+| [T2.6](./tasks/t2.6-complaint.md) | 민원 접수·스레드 | ✅ |
 
 **Phase 완료 조건**
 - [ ] 전 task ✅ (결제 confirm·환급 계산 단위 테스트 포함)

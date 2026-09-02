@@ -73,6 +73,14 @@ export const TRACK_EVENTS = {
   REFUND_CALC_SUBMIT: "refund_calc_submit",
   /** 환급 계산기 「신청하기」 CTA 클릭 — props: `{ source, loggedIn, creditAmount, years }` (T2.3) */
   REFUND_CTA_CLICK: "refund_cta_click",
+  /** 민원 접수 성공 — props: `{ complaintId, leaseId }` (T2.6) */
+  COMPLAINT_CREATE_COMPLETE: "complaint_create_complete",
+  /** 민원 스레드 노출 — props: `{ complaintId, status, role }` (T2.6) */
+  COMPLAINT_THREAD_VIEW: "complaint_thread_view",
+  /** 스레드 메시지 전송 성공 — props: `{ complaintId, role }` (T2.6) */
+  COMPLAINT_MESSAGE_SEND: "complaint_message_send",
+  /** 임대인 상태 변경 성공 — props: `{ complaintId, from, to }` (T2.6) */
+  COMPLAINT_STATUS_CHANGE: "complaint_status_change",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;

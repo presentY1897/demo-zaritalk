@@ -135,11 +135,14 @@ test("E2E② 시드 세입자(박세입) 홈 — 내 계약·이번 달 청구·
   // 수락 대기 계약이 없으므로 배너는 없다
   await expect(page.getByTestId("tenant-pending-banner")).toHaveCount(0);
 
-  // Phase 2 자리 — 자리페이(T2.2)·민원(T2.6)은 비활성, 환급(T2.3·T2.4)은 탭 자리표로 연결
+  // Phase 2 자리 — 자리페이(T2.2)는 아직 비활성, 민원(T2.6)·환급 계산기(T2.3)는 연결됨
   await expect(page.getByTestId("tenant-pay-cta")).toBeDisabled();
-  await expect(page.getByTestId("tenant-complaint-cta")).toContainText("곧 제공");
+  await page.getByTestId("tenant-complaint-link").click();
+  await expect(page).toHaveURL("/tenant/complaints");
+  await page.goBack();
   await page.getByTestId("tenant-refund-banner").click();
-  await expect(page).toHaveURL("/tenant/refund");
+  await expect(page).toHaveURL("/refund/calculator");
+  await page.goBack();
 
   // 옛 경로(T0.4 플레이스홀더)는 정식 경로로 리다이렉트된다
   await page.goto("/tenant/leases/pending");

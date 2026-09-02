@@ -12,12 +12,12 @@
  * |---|---|---|---|
  * | 「자리페이로 결제」 | `/tenant/pay/[chargeId]` | [T2.2](../../../../docs/tasks/t2.2-pay-ui.md) | 비활성 + "곧 제공" |
  * | 납부 이력 | `/tenant/payments` | T2.2 | 비활성 |
- * | 환급 배너 | `/tenant/refund` (계산기는 `/refund/calculator`) | T2.3·[T2.4](../../../../docs/tasks/t2.4-refund-apply.md) | 탭 자리표로 링크 |
- * | 민원 접수 | `/tenant/complaints` | [T2.6](../../../../docs/tasks/t2.6-complaint.md) | 비활성 + "곧 제공" |
+ * | 환급 배너 | `/refund/calculator` | T2.3 ✅ (신청은 [T2.4](../../../../docs/tasks/t2.4-refund-apply.md)) | 연결됨 |
+ * | 민원 접수 | `/tenant/complaints` | [T2.6](../../../../docs/tasks/t2.6-complaint.md) ✅ | 연결됨 |
  *
  * 목적지가 아직 없는 버튼은 **비활성 + "곧 제공"** 으로 둔다 — 눌러서 404 로 빠지지 않게.
  */
-import { Badge, Button, Card, CardHeader, useTrack } from "@zari/ui";
+import { Badge, Button, buttonRecipe, Card, CardHeader, useTrack } from "@zari/ui";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { css } from "styled-system/css";
@@ -331,27 +331,33 @@ export function TenantHomeView({ home }: { home: TenantHomeDto }) {
         ) : null}
 
         {/* T2.3·T2.4(환급) 자리 — 탭 목적지 `/tenant/refund` 는 T0.5 가 이미 깔아 뒀다 */}
-        <Link href="/tenant/refund" className={bannerLinkStyle} data-testid="tenant-refund-banner">
+        <Link
+          href="/refund/calculator"
+          className={bannerLinkStyle}
+          data-testid="tenant-refund-banner"
+        >
           <Card padding="md" interactive>
-            <CardHeader title="월세 환급 받기" aside={<Badge tone="info">준비 중</Badge>} />
+            <CardHeader title="월세 환급 받기" aside={<Badge tone="brand">계산하기</Badge>} />
             <p className={amountSubStyle}>
-              연말정산 월세 세액공제를 최대 5년까지 소급해 신청할 수 있습니다. 계산기와 신청 화면은
-              T2.3·T2.4 에서 열립니다.
+              연말정산 월세 세액공제를 최대 5년까지 소급해 받을 수 있습니다. 총급여와 월세를 넣으면
+              연도별 예상 환급액이 바로 나옵니다.
             </p>
           </Card>
         </Link>
 
-        {/* T2.6(민원) 자리 — 목적지 `/tenant/complaints` 가 아직 없어 비활성으로 둔다 */}
         <Card padding="md" data-testid="tenant-complaint-cta">
-          <CardHeader title="집에 문제가 있나요?" aside={<Badge tone="neutral">준비 중</Badge>} />
+          <CardHeader title="집에 문제가 있나요?" />
           <p className={amountSubStyle}>
-            누수·보일러 같은 문제를 사진과 함께 임대인에게 접수하고 처리 상태를 볼 수 있습니다.
+            누수·보일러 같은 문제를 임대인에게 접수하고 처리 상태를 볼 수 있습니다.
           </p>
           <div className={actionStyle}>
-            <Button variant="secondary" fullWidth disabled>
+            <Link
+              href="/tenant/complaints"
+              className={buttonRecipe({ variant: "secondary", size: "md", fullWidth: true })}
+              data-testid="tenant-complaint-link"
+            >
               민원 접수하기
-            </Button>
-            <p className={soonStyle}>민원 접수는 곧 제공됩니다 (T2.6).</p>
+            </Link>
           </div>
         </Card>
       </div>
