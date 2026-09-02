@@ -55,6 +55,12 @@ export const ADMIN_MENU: AdminMenuGroup[] = [
         owner: "T1.4",
         description: "일일 원장 작업 수동 실행 — 당월 청구 생성·연체 전환·이월·만기 알림(멱등)",
       },
+      {
+        href: "/deals",
+        label: "실거래가 수집",
+        owner: "T4.3",
+        description: "국토부 아파트 실거래가 수동 수집 — 시군구·월 지정(멱등), 구독자 알림 발송",
+      },
     ],
   },
   {

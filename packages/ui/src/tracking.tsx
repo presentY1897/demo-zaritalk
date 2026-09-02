@@ -99,7 +99,14 @@ export type KnownTrackEventName =
   | "listing_update_complete"
   | "listing_status_change"
   | "workplace_create_complete"
-  | "workplace_delete_complete";
+  | "workplace_delete_complete"
+  | "deals_list_view"
+  | "deals_region_change"
+  | "deals_type_change"
+  | "deals_apt_search"
+  | "deals_trend_view"
+  | "deals_alert_create"
+  | "deals_alert_delete";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

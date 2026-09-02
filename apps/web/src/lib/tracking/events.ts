@@ -145,6 +145,20 @@ export const TRACK_EVENTS = {
   WORKPLACE_CREATE_COMPLETE: "workplace_create_complete",
   /** 근무지 삭제 성공 — props: `{ workplaceId, total }` (T3.4) */
   WORKPLACE_DELETE_COMPLETE: "workplace_delete_complete",
+  /** 실거래가 목록 노출 — props: `{ lawdCd, dealType, count, synced }` (T4.4) */
+  DEALS_LIST_VIEW: "deals_list_view",
+  /** 실거래가 시군구 변경 — props: `{ from, to }` (T4.4) */
+  DEALS_REGION_CHANGE: "deals_region_change",
+  /** 매매·전세·월세 탭 전환 — props: `{ dealType }` (T4.4) */
+  DEALS_TYPE_CHANGE: "deals_type_change",
+  /** 단지 검색 실행 — props: `{ query, count }` (T4.4) */
+  DEALS_APT_SEARCH: "deals_apt_search",
+  /** 단지 추이 차트 노출 — props: `{ aptName, points }` (T4.4) */
+  DEALS_TREND_VIEW: "deals_trend_view",
+  /** 알림 구독 성공 — props: `{ lawdCd, dealType, hasApt, duplicated }` (T4.4) */
+  DEALS_ALERT_CREATE: "deals_alert_create",
+  /** 알림 구독 해제 성공 — props: `{ alertId }` (T4.4) */
+  DEALS_ALERT_DELETE: "deals_alert_delete",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;
