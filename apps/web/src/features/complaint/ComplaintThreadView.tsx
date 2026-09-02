@@ -13,15 +13,24 @@
  * ## 아직 열지 않은 자리
  * - **사진 첨부** — 업로드 엔드포인트(D3 Vercel Blob)가 T2.4 소유라 지금은 슬롯만 있다.
  *   `complaint.photos` 가 비어 있지 않으면 그대로 그린다(서버는 이미 받을 준비가 돼 있다).
- * - **「작업 의뢰로 전환」** — [T5.1](../../../../docs/tasks/t5.1-workorder.md)이 여는 버튼이라
- *   지금은 비활성 + 안내다. `complaint.workOrderId` 가 채워지면 그 의뢰로 링크하면 된다.
+ *
+ * ## 「작업 의뢰로 전환」 (T5.1 에서 활성화됨)
+ *
+ * 임대인 패널의 `complaint-workorder-cta` 는 이제 **업종을 고르는 시트**를 연다 —
+ * 대상(건물·호실)과 작업 내용은 민원이 이미 알고 있어서 임대인이 고를 것은 업종뿐이다
+ * (`POST /api/complaints/[id]/convert`). 전환이 끝나면 같은 자리가 **의뢰로 가는 링크**로 바뀌고,
+ * 민원 상태는 `IN_PROGRESS` 가 된다(임대인 홈 배지에서 빠진다).
+ * 이미 전환된 민원은 서버가 409 를 주므로 버튼이 두 번 눌려도 의뢰가 둘 생기지 않는다.
  */
-import { Badge, Button, Card, CardHeader, useTrack } from "@zari/ui";
+import { Badge, Button, buttonRecipe, Card, CardHeader, Sheet, useTrack } from "@zari/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { css, cx } from "styled-system/css";
 import { ApiError } from "@/features/auth/api";
+import { useConvertComplaint } from "@/features/workorder/hooks";
+import { MASTER_CATEGORY_META, MASTER_CATEGORY_ORDER } from "@/features/workorder/status";
+import type { MasterCategoryValue } from "@/features/workorder/types";
 import { TRACK_EVENTS } from "@/lib/tracking/events";
 import { useSendComplaintMessage, useUpdateComplaintStatus } from "./hooks";
 import {
@@ -99,6 +108,23 @@ const errorStyle = css({
 });
 const statusRowStyle = css({ display: "flex", flexWrap: "wrap", gap: "2", mt: "3" });
 const soonStyle = css({ textStyle: "caption", color: "text.muted", mt: "2" });
+const chipRowStyle = css({ display: "flex", flexWrap: "wrap", gap: "2" });
+const chipStyle = css({
+  px: "3",
+  py: "2",
+  rounded: "field",
+  borderWidth: "hairline",
+  borderStyle: "solid",
+  borderColor: "border",
+  bg: "bg.card",
+  textStyle: "label",
+  color: "text",
+  cursor: "pointer",
+  textAlign: "left",
+});
+const chipSelectedStyle = css({ bg: "primary.subtle", borderColor: "primary.border" });
+const chipHintStyle = css({ display: "block", textStyle: "caption", color: "text.muted" });
+const convertLinkStyle = css({ textDecoration: "none" });
 const rowStyle = css({
   display: "flex",
   alignItems: "baseline",
@@ -165,9 +191,12 @@ export function ComplaintThreadView({
   const [complaint, setComplaint] = useState(initialComplaint);
   const [draft, setDraft] = useState("");
   const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertCategory, setConvertCategory] = useState<MasterCategoryValue>("REPAIR");
 
   const sendMessage = useSendComplaintMessage(complaint.id);
   const changeStatus = useUpdateComplaintStatus(complaint.id);
+  const convert = useConvertComplaint(complaint.id);
 
   const viewed = useRef(false);
   useEffect(() => {
@@ -218,6 +247,33 @@ export function ComplaintThreadView({
       router.refresh();
     } catch (error) {
       setTransitionError(errorMessage(error) ?? "상태를 바꾸지 못했습니다.");
+    }
+  }
+
+  /**
+   * 민원 → 작업 의뢰 전환 (T5.1). 대상·내용은 서버가 민원에서 가져오므로 업종만 보낸다.
+   * 성공하면 화면 state 를 바로 갱신해 같은 자리가 의뢰 링크로 바뀐다.
+   */
+  async function submitConvert() {
+    if (convert.isPending) return;
+    try {
+      const result = await convert.mutateAsync({ category: convertCategory });
+      setComplaint((previous) => ({
+        ...previous,
+        workOrderId: result.workOrder.id,
+        status: result.complaintStatus,
+      }));
+      track(TRACK_EVENTS.WORK_ORDER_CONVERT_COMPLETE, {
+        complaintId: complaint.id,
+        workOrderId: result.workOrder.id,
+        category: result.workOrder.category,
+        dispatchedCount: result.dispatchedCount,
+      });
+      setConvertOpen(false);
+      // 임대인 홈(T1.9)의 미확인 민원 배지도 상태 변화를 따라가야 한다
+      router.refresh();
+    } catch {
+      /* 실패 문구는 errorMessage 로 시트 안에 표시된다 */
     }
   }
 
@@ -316,13 +372,34 @@ export function ComplaintThreadView({
             </p>
           ) : null}
 
-          {/* T5.1(작업 의뢰) 자리 — 목적지 `/landlord/workorders/[id]` 가 아직 없어 비활성으로 둔다 */}
+          {/* 작업 의뢰 전환 (T5.1) — 전환 전에는 버튼, 전환 뒤에는 그 의뢰로 가는 링크 */}
           <div className={css({ mt: "4" })}>
-            <Button variant="secondary" fullWidth disabled data-testid="complaint-workorder-cta">
-              작업 의뢰로 전환
-            </Button>
+            {complaint.workOrderId ? (
+              <Link
+                href={`/landlord/workorders/${complaint.workOrderId}`}
+                // 링크 안에 <button> 을 넣을 수 없어 recipe 클래스만 빌려 쓴다(T1.3 과 같은 패턴)
+                className={cx(
+                  convertLinkStyle,
+                  buttonRecipe({ variant: "secondary", size: "md", fullWidth: true }),
+                )}
+                data-testid="complaint-workorder-cta"
+              >
+                전환된 작업 의뢰 보기
+              </Link>
+            ) : (
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setConvertOpen(true)}
+                data-testid="complaint-workorder-cta"
+              >
+                작업 의뢰로 전환
+              </Button>
+            )}
             <p className={soonStyle}>
-              민원을 협력업체 작업 의뢰로 넘기는 기능은 Phase 5(T5.1)에서 열립니다.
+              {complaint.workOrderId
+                ? "이 민원은 협력업체 작업 의뢰로 넘어갔습니다."
+                : "업종을 고르면 조건에 맞는 마스터에게 전달되고, 민원은 「진행중」이 됩니다."}
             </p>
           </div>
         </Card>
@@ -353,6 +430,51 @@ export function ComplaintThreadView({
           <span className={rowValueStyle}>{formatMoment(complaint.lastMessageAt)}</span>
         </div>
       </Card>
+
+      {/* 작업 의뢰 전환 시트 (T5.1) — 대상·내용은 민원에서 가져오므로 업종만 고른다 */}
+      <Sheet
+        open={convertOpen}
+        onClose={() => {
+          setConvertOpen(false);
+          convert.reset();
+        }}
+        title="작업 의뢰로 전환"
+        description={`${complaint.unit.buildingName} ${complaint.unit.label} · 민원 내용이 그대로 작업 내용이 됩니다.`}
+        footer={
+          <Button
+            fullWidth
+            loading={convert.isPending}
+            onClick={submitConvert}
+            data-testid="complaint-convert-submit"
+          >
+            의뢰로 전환하기
+          </Button>
+        }
+      >
+        <div className={composerStyle}>
+          <p className={captionStyle}>업종</p>
+          <div className={chipRowStyle}>
+            {MASTER_CATEGORY_ORDER.map((value) => (
+              <button
+                key={value}
+                type="button"
+                className={cx(chipStyle, convertCategory === value && chipSelectedStyle)}
+                aria-pressed={convertCategory === value}
+                onClick={() => setConvertCategory(value)}
+                data-testid={`complaint-convert-category-${value}`}
+              >
+                {MASTER_CATEGORY_META[value].label}
+                <span className={chipHintStyle}>{MASTER_CATEGORY_META[value].hint}</span>
+              </button>
+            ))}
+          </div>
+          {convert.error ? (
+            <p className={errorStyle} role="alert">
+              {errorMessage(convert.error)}
+            </p>
+          ) : null}
+        </div>
+      </Sheet>
     </main>
   );
 }

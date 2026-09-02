@@ -87,7 +87,8 @@ model Profile {
   brokerageTargets BrokerageTarget[]
 
   // MASTER
-  workOrderQuotes WorkOrderQuote[]
+  workOrderQuotes  WorkOrderQuote[]
+  workOrderTargets WorkOrderTarget[]
 
   // 공통
   listings          Listing[]
@@ -122,6 +123,13 @@ enum MasterCategory {
   ETC
 }
 
+/// 마스터 유료 플랜([D4](../../../docs/DECISIONS.md#-d4-마스터-매칭-방식--pull--push-하이브리드)).
+/// `FREE` 는 피드를 뒤져서 찾아가고(pull), `PRO` 는 조건에 맞는 의뢰를 받아본다(push).
+enum MasterPlan {
+  FREE
+  PRO
+}
+
 /// 마스터(협력업체) 부가정보: 업종 + 활동지역으로 작업 의뢰를 매칭받는다.
 model MasterDetail {
   profileId   String           @id
@@ -132,6 +140,10 @@ model MasterDetail {
   lng         Float
   radiusKm    Float            @default(5)
   intro       String?
+  /// 유료 플랜 — `PRO` 만 push 추천(WorkOrderTarget)을 받는다(T5.2)
+  plan        MasterPlan       @default(FREE)
+  /// 유료 만료 시각. null 이면 만료 없음(데모 토글). 지난 값이면 PRO 라도 추천 대상에서 빠진다
+  planUntil   DateTime?
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
@@ -523,11 +535,39 @@ model WorkOrder {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
-  requesterProfile Profile          @relation(fields: [requesterProfileId], references: [id])
-  building         Building?        @relation(fields: [buildingId], references: [id])
-  unit             Unit?            @relation(fields: [unitId], references: [id])
-  complaint        Complaint?       @relation(fields: [complaintId], references: [id])
+  requesterProfile Profile           @relation(fields: [requesterProfileId], references: [id])
+  building         Building?         @relation(fields: [buildingId], references: [id])
+  unit             Unit?             @relation(fields: [unitId], references: [id])
+  complaint        Complaint?        @relation(fields: [complaintId], references: [id])
   quotes           WorkOrderQuote[]
+  targets          WorkOrderTarget[]
+
+  @@index([status, category])
+}
+
+enum WorkOrderTargetStatus {
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+}
+
+/// 유료(PRO) 마스터에게 밀어 준 작업 의뢰 추천([D4](../../../docs/DECISIONS.md#-d4-마스터-매칭-방식--pull--push-하이브리드)).
+/// `BrokerageTarget` 과 같은 형태다 — 의뢰 생성 시 업종·반경·플랜 조건으로 거리순 N명에게 만든다.
+/// 지금은 `SENT` 만 쓴다. 열람·수락·거절은 견적(T5.3)이 붙을 때 채운다.
+model WorkOrderTarget {
+  id              String                @id @default(cuid())
+  workOrderId     String
+  masterProfileId String
+  distanceKm      Float
+  status          WorkOrderTargetStatus @default(SENT)
+  sentAt          DateTime              @default(now())
+
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  masterProfile Profile   @relation(fields: [masterProfileId], references: [id])
+
+  @@unique([workOrderId, masterProfileId])
+  @@index([masterProfileId, sentAt])
 }
 
 enum QuoteStatus {

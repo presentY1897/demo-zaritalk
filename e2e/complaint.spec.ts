@@ -66,8 +66,9 @@ test("E2E① 세입자 접수 → 임대인 홈 배지 → 답변 → 해결 →
   await expect(opening).toContainText("보일러 확인 부탁드립니다");
   await expect(opening).toContainText("박세입");
 
-  // 「작업 의뢰로 전환」은 Phase 5(T5.1) 자리라 아직 비활성이다
-  await expect(page.getByTestId("complaint-workorder-cta")).toBeDisabled();
+  // 「작업 의뢰로 전환」 — T2.6 때는 비활성 자리였고 T5.1 이 활성화했다.
+  // 여기서는 버튼이 살아 있다는 것만 본다(전환 여정 자체는 `e2e/workorder.spec.ts` E2E② 담당).
+  await expect(page.getByTestId("complaint-workorder-cta")).toBeEnabled();
 
   // ── ④ 임대인이 답변하고 상태를 진행중 → 해결로 옮긴다
   await page.getByTestId("complaint-message-input").fill("내일 오전에 설비 기사가 방문합니다.");

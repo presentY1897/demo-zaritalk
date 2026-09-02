@@ -72,7 +72,14 @@ export type KnownTrackEventName =
   | "pay_request_start"
   | "pay_confirm_complete"
   | "pay_confirm_fail"
-  | "pay_history_view";
+  | "pay_history_view"
+  | "work_order_create_complete"
+  | "work_order_convert_complete"
+  | "work_order_status_change"
+  | "master_feed_view"
+  | "master_feed_tab_change"
+  | "master_order_view"
+  | "master_plan_change";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.
