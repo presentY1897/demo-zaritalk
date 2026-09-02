@@ -7,7 +7,12 @@
  */
 import { LeaseStatus, prisma, ProfileType } from "@zari/db";
 import { assertTestDatabase, resetDb } from "@zari/db/testing";
-import { afterAll, beforeEach, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  createRealTransaction,
+  mockMolitFetch,
+  readDealFixture,
+} from "@/features/deals/testing";
 import { addDays, kstToday, kstYearMonth } from "@/lib/rent";
 import { CRON_SECRET_HEADER } from "./auth";
 import { GET, POST } from "./route";
@@ -25,6 +30,11 @@ beforeEach(async () => {
   assertTestDatabase();
   await resetDb();
   process.env.CRON_SECRET = SECRET;
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 afterAll(() => {
@@ -122,6 +132,63 @@ describe("응답 본문", () => {
     const second = await (await POST(request({ [CRON_SECRET_HEADER]: SECRET }))).json();
     expect(second).toMatchObject({ chargesCreated: 0, chargesSkipped: 1 });
     expect(await prisma.rentCharge.count()).toBe(1);
+  });
+});
+
+/**
+ * 실거래가 수집(T4.3)이 같은 크론에 얹혀 있다 — **기존 원장 결과는 그대로**이고 `deals` 만 붙는다.
+ * 국토부 호출은 fixture 로 mock 한다(크론 테스트가 네트워크를 타지 않게).
+ */
+describe("실거래가 수집 블록 (T4.3)", () => {
+  test("키가 없으면 국토부를 부르지 않고 skipped 로 지나간다", async () => {
+    delete process.env.DATA_GO_KR_API_KEY;
+    const calls = mockMolitFetch({ TRADE: { xml: readDealFixture("empty") } });
+
+    const body = await (await POST(request({ [CRON_SECRET_HEADER]: SECRET }))).json();
+    expect(body.ok).toBe(true);
+    expect(body.deals).toEqual({ skipped: "NO_KEY" });
+    expect(calls).toHaveLength(0);
+  });
+
+  test("대상 지역이 없으면 호출 0회 — 원장 결과는 그대로다", async () => {
+    vi.stubEnv("DATA_GO_KR_API_KEY", "test-key");
+    const calls = mockMolitFetch({ TRADE: { xml: readDealFixture("empty") } });
+    await createActiveLease();
+
+    const body = await (await POST(request({ [CRON_SECRET_HEADER]: SECRET }))).json();
+    expect(body).toMatchObject({ ok: true, chargesCreated: 1 });
+    expect(body.deals).toMatchObject({ skipped: null, regionsScanned: 0, requests: 0, created: 0 });
+    expect(calls).toHaveLength(0);
+  });
+
+  test("수집분이 있는 지역을 스스로 골라 당월·전월을 훑는다", async () => {
+    vi.stubEnv("DATA_GO_KR_API_KEY", "test-key");
+    await createRealTransaction({ lawdCd: "11200" });
+    const calls = mockMolitFetch({
+      TRADE: { xml: readDealFixture("empty") },
+      RENT: { xml: readDealFixture("empty") },
+    });
+
+    const body = await (await POST(request({ [CRON_SECRET_HEADER]: SECRET }))).json();
+    expect(body.deals).toMatchObject({ skipped: null, regionsScanned: 1, monthsScanned: 2 });
+    // 지역 1 × 월 2 × 엔드포인트 2 = 4회
+    expect(calls).toHaveLength(4);
+    expect(new Set(calls.map((call) => call.url.searchParams.get("LAWD_CD")))).toEqual(
+      new Set(["11200"]),
+    );
+  });
+
+  test("국토부가 죽어도 원장 크론 결과는 그대로 나간다", async () => {
+    vi.stubEnv("DATA_GO_KR_API_KEY", "test-key");
+    await createRealTransaction({ lawdCd: "11200" });
+    await createActiveLease();
+    mockMolitFetch({ TRADE: { status: 500, xml: "" }, RENT: { status: 500, xml: "" } });
+
+    const response = await POST(request({ [CRON_SECRET_HEADER]: SECRET }));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({ ok: true, chargesCreated: 1 });
+    expect(body.deals.failed).toBe(4);
   });
 });
 

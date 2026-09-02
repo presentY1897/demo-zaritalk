@@ -20,7 +20,26 @@ export type DailyCronSummary = {
   expiryNoticesSent: number;
   expiryNoticesSkipped: number;
   durationMs: number;
+  /** 실거래가 수집 결과 (T4.3) — 같은 크론이 원장 뒤에 이어서 돌린다 */
+  deals?: DealsCronBlock;
 };
+
+/** `deals` 블록 — 서버에 국토부 키가 없으면 `skipped: "NO_KEY"` 만 온다 */
+export type DealsCronBlock =
+  | { skipped: "NO_KEY" }
+  | {
+      skipped: null;
+      regionsScanned: number;
+      monthsScanned: number;
+      requests: number;
+      fetched: number;
+      created: number;
+      alreadyHad: number;
+      discarded: number;
+      failed: number;
+      alertsSent: number;
+      durationMs: number;
+    };
 
 export type TriggerCronResult =
   | { ok: true; url: string; summary: DailyCronSummary }

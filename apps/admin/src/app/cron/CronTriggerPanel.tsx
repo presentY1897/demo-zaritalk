@@ -10,7 +10,7 @@ import { Badge, Button, Card } from "@zari/ui";
 import { useState, useTransition } from "react";
 import { css } from "styled-system/css";
 import { triggerDailyCron } from "./actions";
-import type { TriggerCronResult } from "./shared";
+import type { DailyCronSummary, TriggerCronResult } from "./shared";
 
 const cardStyle = css({ mt: "6", maxW: "720px" });
 const rowStyle = css({
@@ -41,7 +41,9 @@ const headRowStyle = css({
 const sectionTitleStyle = css({ textStyle: "subtitle", color: "text" });
 
 /** 결과 요약을 사람이 읽는 줄로 편다. */
-function summaryRows(result: Extract<TriggerCronResult, { ok: true }>) {
+function summaryRows(
+  result: Extract<TriggerCronResult, { ok: true }>,
+): (readonly [string, string])[] {
   const { summary } = result;
   return [
     ["기준일 (KST)", summary.today],
@@ -53,7 +55,23 @@ function summaryRows(result: Extract<TriggerCronResult, { ok: true }>) {
     ["상태 변경", `${summary.statusChanged}건 (연체 전환 ${summary.statusBreakdown.OVERDUE ?? 0}건)`],
     ["만기 알림 발송", `${summary.expiryNoticesSent}건 (이미 보냄 ${summary.expiryNoticesSkipped}건)`],
     ["소요", `${summary.durationMs}ms`],
-  ] as const;
+    ...dealsRows(summary.deals),
+  ];
+}
+
+/** 실거래가 수집(T4.3) 결과 줄 — 같은 크론이 원장 뒤에 이어서 돌린다 */
+function dealsRows(deals: DailyCronSummary["deals"]): (readonly [string, string])[] {
+  if (!deals) return [];
+  if (deals.skipped === "NO_KEY") {
+    return [["실거래가 수집", "건너뜀 (DATA_GO_KR_API_KEY 없음)"] as const];
+  }
+  return [
+    ["실거래가 — 훑은 지역", `${deals.regionsScanned}곳 / ${deals.monthsScanned}개월`] as const,
+    ["실거래가 — API 호출", `${deals.requests}회`] as const,
+    ["실거래가 — 신규 저장", `${deals.created}건 (이미 있어 건너뜀 ${deals.alreadyHad}건)`] as const,
+    ["실거래가 — 실패 조각", `${deals.failed}건`] as const,
+    ["실거래가 — 구독자 알림", `${deals.alertsSent}건`] as const,
+  ];
 }
 
 export function CronTriggerPanel({ webUrl }: { webUrl: string }) {
