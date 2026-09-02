@@ -83,7 +83,15 @@ export type KnownTrackEventName =
   | "master_feed_view"
   | "master_feed_tab_change"
   | "master_order_view"
-  | "master_plan_change";
+  | "master_plan_change"
+  | "community_board_view"
+  | "community_region_change"
+  | "community_sort_change"
+  | "community_post_create"
+  | "community_post_view"
+  | "community_like_toggle"
+  | "community_comment_create"
+  | "community_report_submit";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

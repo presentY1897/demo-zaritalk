@@ -113,6 +113,22 @@ export const TRACK_EVENTS = {
   MASTER_ORDER_VIEW: "master_order_view",
   /** 데모용 플랜 전환 성공 — props: `{ from, to }` (T5.2) */
   MASTER_PLAN_CHANGE: "master_plan_change",
+  /** 지역 보드 노출 — props: `{ regionCode, sort, count }` (T4.1) */
+  COMMUNITY_BOARD_VIEW: "community_board_view",
+  /** 보드의 시군구 변경 — props: `{ from, to }` (T4.1) */
+  COMMUNITY_REGION_CHANGE: "community_region_change",
+  /** 최신·인기 탭 전환 — props: `{ sort }` (T4.1) */
+  COMMUNITY_SORT_CHANGE: "community_sort_change",
+  /** 글 작성 성공 — props: `{ postId, regionCode, profileType }` (T4.1) */
+  COMMUNITY_POST_CREATE: "community_post_create",
+  /** 글 상세 노출 — props: `{ postId, regionCode, moderation }` (T4.1) */
+  COMMUNITY_POST_VIEW: "community_post_view",
+  /** 좋아요 토글 성공 — props: `{ postId, liked, likeCount }` (T4.1) */
+  COMMUNITY_LIKE_TOGGLE: "community_like_toggle",
+  /** 댓글 작성 성공 — props: `{ postId }` (T4.1) */
+  COMMUNITY_COMMENT_CREATE: "community_comment_create",
+  /** 신고 접수 성공 — props: `{ targetType, targetId, duplicated }` (T4.2) */
+  COMMUNITY_REPORT_SUBMIT: "community_report_submit",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;
