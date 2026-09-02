@@ -91,6 +91,20 @@ export const TRACK_EVENTS = {
   PAY_CONFIRM_FAIL: "pay_confirm_fail",
   /** 세입자 납부 이력 노출 — props: `{ count, cardCount }` (T2.2) */
   PAY_HISTORY_VIEW: "pay_history_view",
+  /** 작업 의뢰 등록 성공 — props: `{ workOrderId, category, source, dispatchedCount }` (T5.1) */
+  WORK_ORDER_CREATE_COMPLETE: "work_order_create_complete",
+  /** 민원 → 작업 의뢰 전환 성공 — props: `{ complaintId, workOrderId, category, dispatchedCount }` (T5.1) */
+  WORK_ORDER_CONVERT_COMPLETE: "work_order_convert_complete",
+  /** 의뢰 완료·취소 성공 — props: `{ workOrderId, from, to }` (T5.1) */
+  WORK_ORDER_STATUS_CHANGE: "work_order_status_change",
+  /** 마스터 홈 노출 — props: `{ plan, feedCount, targetCount }` (T5.2) */
+  MASTER_FEED_VIEW: "master_feed_view",
+  /** 마스터 홈 탭 전환 — props: `{ tab }` (recommended | feed) (T5.2) */
+  MASTER_FEED_TAB_CHANGE: "master_feed_tab_change",
+  /** 마스터 의뢰 상세 노출 — props: `{ workOrderId, recommended, distanceKm }` (T5.2) */
+  MASTER_ORDER_VIEW: "master_order_view",
+  /** 데모용 플랜 전환 성공 — props: `{ from, to }` (T5.2) */
+  MASTER_PLAN_CHANGE: "master_plan_change",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;

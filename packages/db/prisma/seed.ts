@@ -8,14 +8,29 @@
  *   101호: 공실 (매물·중개 요청 시나리오용)
  * - 박세입(01022222222, TENANT): 201호 세입자, 근무지 1곳(강남역)
  * - 이중개(01033333333, REALTOR): 왕십리 사무소, 반경 3km
- * - 최마스(01044444444, MASTER): 성수 수리·청소 업체, 반경 5km
+ * - 최마스(01044444444, MASTER): 성수 수리·청소 업체, 반경 5km, **유료(PRO)** — push 추천을 받는다
+ * - 한마스(01066666666, MASTER): 성수 인테리어·수리 업체, 반경 5km, **무료(FREE)** — 피드로만 찾아간다
  * - 관리자(01000000000, isAdmin)
+ *
+ * Phase 5(T5.1·T5.2) 시나리오: 행당해피빌 201호 수리(REPAIR) 의뢰 1건이 `REQUESTED` 로 있고,
+ * 두 마스터 모두 **전체 피드(pull)** 에서 그 의뢰를 본다. 반면 **추천(push)** 은 PRO 인
+ * 최마스에게만 `WorkOrderTarget` + 발송 로그로 가 있다 — 화면에서 pull/push 차이가 바로 보인다.
  *
  * 전체 삭제 후 재생성하므로 데모 DB 전용이다.
  */
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { ChargeStatus, LeaseStatus, MasterCategory, MessageKind, PaymentMethod, PrismaClient, ProfileType } from "../src/generated/client";
+import {
+  ChargeStatus,
+  LeaseStatus,
+  MasterCategory,
+  MasterPlan,
+  MessageKind,
+  PaymentMethod,
+  PrismaClient,
+  ProfileType,
+  WorkOrderStatus,
+} from "../src/generated/client";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -31,6 +46,23 @@ const d = (s: string) => new Date(`${s}T00:00:00Z`);
 /** 타임스탬프 컬럼용 — "그날 한국시간 자정에 일어난 일"을 뜻한다. */
 const at = (s: string) => new Date(`${s}T00:00:00+09:00`);
 
+/**
+ * 두 좌표 사이 거리(km) — 하버사인.
+ *
+ * 앱 쪽 원본은 `apps/web/src/lib/geo/distance.ts` 의 `haversineKm` 이다(T5.1 이 만들고 T3.6 이
+ * 재사용한다). 시드는 앱 소스를 import 할 수 없어(별 패키지) 같은 식을 여기 한 번 더 적는다 —
+ * `WorkOrderTarget.distanceKm` 을 앱이 계산한 값과 같게 채우기 위해서다.
+ */
+const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+};
+
 async function main() {
   // 의존 역순 전체 삭제
   await prisma.$transaction([
@@ -43,6 +75,7 @@ async function main() {
     prisma.comment.deleteMany(),
     prisma.post.deleteMany(),
     prisma.workOrderQuote.deleteMany(),
+    prisma.workOrderTarget.deleteMany(),
     prisma.workOrder.deleteMany(),
     prisma.complaintMessage.deleteMany(),
     prisma.complaint.deleteMany(),
@@ -124,7 +157,8 @@ async function main() {
     },
   });
 
-  const master = await prisma.user.create({
+  // 유료(PRO) 마스터 — 조건에 맞는 의뢰를 **추천으로 받아본다**(D4 push)
+  const proMaster = await prisma.user.create({
     data: {
       phone: "01044444444",
       name: "최마스",
@@ -140,6 +174,37 @@ async function main() {
               lng: 127.05599,
               radiusKm: 5,
               intro: "누수·보일러 수리, 입주 청소 전문.",
+              plan: MasterPlan.PRO,
+              planUntil: at("2027-01-01"),
+            },
+          },
+        },
+      },
+    },
+    include: { profiles: { include: { masterDetail: true } } },
+  });
+  const proMasterDetail = proMaster.profiles[0].masterDetail!;
+
+  // 무료(FREE) 마스터 — 추천은 못 받고 **피드를 뒤져서 찾아간다**(D4 pull).
+  // 업종을 최마스와 겹치게(REPAIR) 둔 이유: 같은 의뢰가 두 사람 피드에 다 뜨는데
+  // 추천함은 PRO 인 최마스만 채워지는 것을 한 화면에서 보이게 하려는 것이다.
+  await prisma.user.create({
+    data: {
+      phone: "01066666666",
+      name: "한마스",
+      profiles: {
+        create: {
+          type: ProfileType.MASTER,
+          masterDetail: {
+            create: {
+              companyName: "성수리인테리어",
+              categories: [MasterCategory.INTERIOR, MasterCategory.REPAIR],
+              address: "서울 성동구 연무장길 33",
+              lat: 37.5445,
+              lng: 127.0555,
+              radiusKm: 5,
+              intro: "원룸 인테리어·부분 시공, 간단 수리도 합니다.",
+              // plan 은 기본값 FREE
             },
           },
         },
@@ -322,6 +387,39 @@ async function main() {
     },
   });
 
+  // ---- Phase 5: 작업 의뢰 1건(REQUESTED) + PRO 마스터 추천(push) ----
+  // pull 피드(전 마스터)는 이 의뢰를 업종·반경으로 찾아 보고,
+  // push 추천(PRO 만)은 아래 WorkOrderTarget + 발송 로그로 미리 가 있다.
+  const workOrder = await prisma.workOrder.create({
+    data: {
+      requesterProfileId: landlordProfile.id,
+      buildingId: building.id,
+      unitId: unitByLabel["201호"].id,
+      category: MasterCategory.REPAIR,
+      description: "201호 온수가 미지근합니다. 보일러 점검·수리 부탁드립니다.",
+      desiredDate: d("2026-09-10"),
+      status: WorkOrderStatus.REQUESTED,
+      createdAt: at("2026-09-01"),
+    },
+  });
+  await prisma.workOrderTarget.create({
+    data: {
+      workOrderId: workOrder.id,
+      masterProfileId: proMasterDetail.profileId,
+      distanceKm: Number(haversineKm(building, proMasterDetail).toFixed(3)),
+      sentAt: at("2026-09-01"),
+    },
+  });
+  await prisma.messageLog.create({
+    data: {
+      kind: MessageKind.WORK_ORDER_REQUEST,
+      toPhone: "01044444444",
+      title: "새 작업 의뢰 추천 — 수리/설비",
+      body: "행당해피빌 201호 · 201호 온수가 미지근합니다. 보일러 점검·수리 부탁드립니다.",
+      sentAt: at("2026-09-01"),
+    },
+  });
+
   console.log("seed 완료:", {
     users: await prisma.user.count(),
     profiles: await prisma.profile.count(),
@@ -330,9 +428,10 @@ async function main() {
     charges: await prisma.rentCharge.count(),
     payments: await prisma.rentPayment.count(),
     messages: await prisma.messageLog.count(),
+    workOrders: await prisma.workOrder.count(),
+    workOrderTargets: await prisma.workOrderTarget.count(),
   });
   void realtor;
-  void master;
 }
 
 main().finally(() => prisma.$disconnect());
