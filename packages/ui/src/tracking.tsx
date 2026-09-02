@@ -83,7 +83,12 @@ export type KnownTrackEventName =
   | "master_feed_view"
   | "master_feed_tab_change"
   | "master_order_view"
-  | "master_plan_change";
+  | "master_plan_change"
+  | "listing_create_complete"
+  | "listing_update_complete"
+  | "listing_status_change"
+  | "workplace_create_complete"
+  | "workplace_delete_complete";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

@@ -4,7 +4,8 @@
  * `/landlord/units/[id]` 화면 본체 (T1.1) — 현재 계약 카드 · 과거 이력 · 수납 요약,
  * 공실이면 「매물 등록」(T3.1)·「중개 요청」(T3.6) 진입 버튼.
  *
- * 계약 등록·상세(T1.2)·수납(T1.5)로 넘어가는 진입점이 여기 있다. 매물 등록(T3.1) 화면은 아직 없다.
+ * 계약 등록·상세(T1.2)·수납(T1.5)·매물 관리(T3.1 `/landlord/units/[id]/listing`)로 넘어가는
+ * 진입점이 여기 있다.
  */
 import { Badge, Button, Card, CardHeader, Sheet } from "@zari/ui";
 import Link from "next/link";
@@ -12,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { css } from "styled-system/css";
 import { ApiError } from "@/features/auth/api";
+import { LISTING_STATUS_META } from "@/features/listing/status";
 import { UnitForm } from "./UnitForm";
 import { formatArea, formatDate, formatKrw, formatManwon, leaseKindLabel } from "./format";
 import { useDeleteUnit, useUnit, useUpdateUnit } from "./hooks";
@@ -72,11 +74,11 @@ const LEASE_STATUS_LABEL: Record<LeaseSummaryDto["status"], string> = {
   CANCELLED: "취소",
 };
 
-/** 매물 상태 라벨 — 실제 매물 화면은 T3.1 이 만든다(여기서는 있으면 보여 주기만) */
+/** 매물 상태 라벨·tone — 규칙 원본은 T3.1 의 `features/listing/status.ts` */
 const LISTING_STATUS_LABEL: Record<ListingStatusValue, string> = {
-  OPEN: "공개 중",
-  RESERVED: "예약",
-  CLOSED: "종료",
+  OPEN: LISTING_STATUS_META.OPEN.label,
+  RESERVED: LISTING_STATUS_META.RESERVED.label,
+  CLOSED: LISTING_STATUS_META.CLOSED.label,
 };
 
 function errorMessage(error: unknown): string | undefined {
@@ -195,8 +197,12 @@ export function UnitDetailView({ initialUnit }: { initialUnit: UnitDetailDto }) 
           </p>
           <div className={css({ mt: "3" })}>
             <div className={ctaRowStyle}>
-              {/* 매물 등록 화면은 T3.1 이 만든다 — 지금은 자리만 잡아 둔다 */}
-              <Button fullWidth disabled data-testid="listing-create">
+              {/* 매물 등록·상태 관리는 T3.1 의 `/landlord/units/[id]/listing` */}
+              <Button
+                fullWidth
+                onClick={() => router.push(`/landlord/units/${unit.id}/listing`)}
+                data-testid="listing-create"
+              >
                 매물 등록
               </Button>
               {/* 중개 요청은 T3.6 의 `/landlord/brokerage`(T0.5 확정 경로)로 보낸다 */}
@@ -220,7 +226,7 @@ export function UnitDetailView({ initialUnit }: { initialUnit: UnitDetailDto }) 
               </Button>
             </div>
             <p className={css({ textStyle: "caption", color: "text.muted", mt: "2" })}>
-              매물 등록은 T3.1, 중개 요청은 T3.6 에서 열립니다.
+              중개 요청은 T3.6 에서 열립니다.
             </p>
           </div>
         </Card>
@@ -260,7 +266,7 @@ export function UnitDetailView({ initialUnit }: { initialUnit: UnitDetailDto }) 
           <CardHeader
             title="매물"
             aside={
-              <Badge tone={unit.listing.status === "OPEN" ? "info" : "neutral"}>
+              <Badge tone={LISTING_STATUS_META[unit.listing.status].tone}>
                 {LISTING_STATUS_LABEL[unit.listing.status]}
               </Badge>
             }
@@ -273,6 +279,16 @@ export function UnitDetailView({ initialUnit }: { initialUnit: UnitDetailDto }) 
               보증금 {formatManwon(unit.listing.deposit)}
               {unit.listing.monthlyRent > 0 ? ` / 월 ${formatManwon(unit.listing.monthlyRent)}` : ""}
             </span>
+          </div>
+          <div className={css({ mt: "3" })}>
+            <Button
+              fullWidth
+              variant="secondary"
+              onClick={() => router.push(`/landlord/units/${unit.id}/listing`)}
+              data-testid="listing-manage"
+            >
+              매물 관리
+            </Button>
           </div>
         </Card>
       ) : null}

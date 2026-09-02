@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { mockAddressSearch, pickAddress } from "./address";
 import { trackedEventCount } from "./db";
 
 /**
@@ -64,15 +65,17 @@ test("E2E① 자산 탭 → 시드 건물의 호실 그리드 상태 색 → 호
 });
 
 test("E2E② 건물 등록 → 호실 추가 → 그리드에 공실 표시 → 호실 상세", async ({ page }) => {
+  await mockAddressSearch(page);
   await loginAsLandlord(page);
   await page.locator('[data-tab="assets"]').click();
   await expect(page).toHaveURL("/landlord/buildings");
 
-  // 건물 등록 — 주소·좌표는 지역 프리셋으로 채운다(카카오 키 전 임시 입력 방식)
+  // 건물 등록 — 주소·좌표는 **카카오 주소 검색**으로 채운다
+  // (T3.1 이 지역 프리셋·위경도 입력칸을 걷어냈다. 외부 호출은 `e2e/address.ts` 가 가로챈다)
   await page.getByTestId("building-add").click();
   await page.getByTestId("building-name").fill("성수리버뷰");
-  await page.getByTestId("building-area-preset-성수").click();
-  await expect(page.getByTestId("building-lat")).toHaveValue("37.54453");
+  await pickAddress(page, "building-address", "성수");
+  await expect(page.getByTestId("building-address-selected")).toContainText("아차산로 100");
   await page.getByTestId("building-submit").click();
 
   const newCard = page.getByTestId("building-card").filter({ hasText: "성수리버뷰" });

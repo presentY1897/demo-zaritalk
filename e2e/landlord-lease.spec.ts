@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockAddressSearch, pickAddress } from "./address";
 import { trackedEventCount } from "./db";
 
 /**
@@ -23,14 +24,15 @@ async function loginAsLandlord(page: Page) {
 test("E2E① 건물·호실 등록 → 계약 등록 → 그리드에 계약 상태 + 당월 청구 생성", async ({
   page,
 }) => {
+  await mockAddressSearch(page);
   await loginAsLandlord(page);
   await page.locator('[data-tab="assets"]').click();
   await expect(page).toHaveURL("/landlord/buildings");
 
-  // 건물 등록(지역 프리셋으로 좌표 채우기 — T1.1 방식)
+  // 건물 등록 — 주소 검색으로 좌표를 채운다(T3.1 이 지역 프리셋을 걷어냈다)
   await page.getByTestId("building-add").click();
   await page.getByTestId("building-name").fill("왕십리스테이");
-  await page.getByTestId("building-area-preset-성수").click();
+  await pickAddress(page, "building-address", "성수");
   await page.getByTestId("building-submit").click();
 
   const card = page.getByTestId("building-card").filter({ hasText: "왕십리스테이" });

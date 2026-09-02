@@ -29,29 +29,9 @@ export const MASTER_CATEGORY_OPTIONS: readonly MasterCategoryOption[] = [
   { value: "ETC", label: "기타" },
 ];
 
-export type AreaPreset = {
-  label: string;
-  address: string;
-  lat: number;
-  lng: number;
-};
-
-/**
- * 활동지역 좌표 프리셋 — **임시 조치**.
- *
- * 카카오맵 키가 아직 없어 주소→좌표 지오코딩을 할 수 없다. 그래서 좌표는 수동 입력이고,
- * 시연에서 매번 위경도를 치지 않도록 서울 주요 지역을 프리셋으로 넣어 뒀다.
- * T3.x(매물 지도·통근)에서 카카오 로컬 API 지오코딩이 들어오면 이 배열과
- * 위경도 입력칸을 함께 걷어내고 주소 검색 한 칸으로 바꾼다.
- */
-export const AREA_PRESETS: readonly AreaPreset[] = [
-  { label: "왕십리", address: "서울 성동구 왕십리로 300", lat: 37.56133, lng: 127.03782 },
-  { label: "성수", address: "서울 성동구 아차산로 100", lat: 37.54453, lng: 127.05599 },
-  { label: "강남역", address: "서울 강남구 강남대로 396", lat: 37.49794, lng: 127.02762 },
-  { label: "홍대입구", address: "서울 마포구 양화로 160", lat: 37.5572, lng: 126.9245 },
-  { label: "잠실", address: "서울 송파구 올림픽로 240", lat: 37.51338, lng: 127.10021 },
-  { label: "여의도", address: "서울 영등포구 여의대로 108", lat: 37.52508, lng: 126.92693 },
-];
+/* 좌표 프리셋(`AREA_PRESETS`)은 T3.1 에서 걷어냈다 — 카카오맵 키가 없던 동안 좌표를 수동
+   입력받으면서 시연 편의로 두었던 임시 조치다. 이제 활동지역·건물 주소·근무지 모두 공용
+   주소 검색(`features/address/AddressSearchField`)으로 좌표를 받는다. */
 
 /** 활동반경 선택지(km) */
 export const RADIUS_OPTIONS = [1, 3, 5, 10, 20] as const;

@@ -15,6 +15,7 @@
  * | 환급 배너 | `/refund/calculator` | T2.3 ✅ | 연결됨 (배너 클릭 = 계산기) |
  * | 환급 신청 현황 | `/tenant/refund` | [T2.4](../../../../docs/tasks/t2.4-refund-apply.md) ✅ | 배너 아래 링크 + 세입자 탭바 「환급」 |
  * | 민원 접수 | `/tenant/complaints` | [T2.6](../../../../docs/tasks/t2.6-complaint.md) ✅ | 연결됨 |
+ * | 근무지 관리 | `/tenant/workplaces` | [T3.4](../../../../docs/tasks/t3.4-workplace.md) ✅ | 연결됨 (통근시간 T3.5 의 기준점) |
  *
  * 목적지가 아직 없는 버튼은 **비활성 + "곧 제공"** 으로 둔다 — 눌러서 404 로 빠지지 않게.
  */
@@ -373,6 +374,23 @@ export function TenantHomeView({ home }: { home: TenantHomeDto }) {
         >
           이미 신청했나요? 신청 현황 보기 →
         </Link>
+
+        {/* 근무지(T3.4) — 매물 통근시간(T3.5)의 기준점. 탭바에 자리가 없어 홈에서 들어간다 */}
+        <Card padding="md" data-testid="tenant-workplace-cta">
+          <CardHeader title="근무지 등록하기" />
+          <p className={amountSubStyle}>
+            회사·학교를 등록해 두면 매물마다 통근시간을 바로 볼 수 있습니다.
+          </p>
+          <div className={actionStyle}>
+            <Link
+              href="/tenant/workplaces"
+              className={buttonRecipe({ variant: "secondary", size: "md", fullWidth: true })}
+              data-testid="tenant-workplace-link"
+            >
+              근무지 관리
+            </Link>
+          </div>
+        </Card>
 
         <Card padding="md" data-testid="tenant-complaint-cta">
           <CardHeader title="집에 문제가 있나요?" />

@@ -5,6 +5,12 @@
  * `@zari/db` 를 import 하지 않는다 — 클라이언트 폼도 같은 스키마로 미리 막는다.
  */
 import { z } from "zod";
+/**
+ * 좌표 범위(위 33~39 / 경 124~132)는 T3.1 이 만든 단일 출처에서 온다.
+ * 건물 주소는 이제 주소 검색(`AddressSearchField`)으로만 입력되지만 — 화면에 위경도 칸이 없다 —
+ * API 를 직접 부를 수 있으므로 서버 스키마에서 여전히 범위를 막는다.
+ */
+import { latSchema, lngSchema } from "@/features/address/coords";
 
 const nameSchema = z
   .string()
@@ -17,21 +23,6 @@ const addressSchema = z
   .trim()
   .min(2, "주소를 입력해 주세요.")
   .max(120, "주소는 120자 이하로 입력해 주세요.");
-
-/**
- * 좌표는 지금 **수동 입력 + 지역 프리셋**이다 — 카카오맵 키가 없어 주소→좌표 지오코딩을 못 한다.
- * 프리셋은 T0.4 가 만든 `features/profiles/constants.ts` 의 `AREA_PRESETS` 를 그대로 재사용한다.
- * T3.x(매물 지도·통근)에서 카카오 로컬 API 주소 검색이 들어오면 위경도 입력칸과 함께 걷어낸다.
- * 범위는 T0.4 프로필 스키마와 같은 대한민국 범위를 쓴다.
- */
-const latSchema = z
-  .number()
-  .min(33, "위도는 33~39 사이(대한민국)여야 합니다.")
-  .max(39, "위도는 33~39 사이(대한민국)여야 합니다.");
-const lngSchema = z
-  .number()
-  .min(124, "경도는 124~132 사이(대한민국)여야 합니다.")
-  .max(132, "경도는 124~132 사이(대한민국)여야 합니다.");
 
 const noteSchema = z.string().trim().max(200, "메모는 200자 이하로 입력해 주세요.");
 
