@@ -73,6 +73,14 @@ export const TRACK_EVENTS = {
   REFUND_CALC_SUBMIT: "refund_calc_submit",
   /** 환급 계산기 「신청하기」 CTA 클릭 — props: `{ source, loggedIn, creditAmount, years }` (T2.3) */
   REFUND_CTA_CLICK: "refund_cta_click",
+  /** 환급 신청서 화면 노출 — props: `{ prefilled, hasDraft, leaseCount }` (T2.4) */
+  REFUND_APPLY_VIEW: "refund_apply_view",
+  /** 신청 서류 업로드 성공 — props: `{ applicationId, slot, size, stage }` (T2.4) */
+  REFUND_DOC_UPLOAD: "refund_doc_upload",
+  /** 환급 신청 제출 성공 — props: `{ applicationId, expectedAmount, documentCount, resubmit }` (T2.4) */
+  REFUND_APPLY_SUBMIT: "refund_apply_submit",
+  /** 환급 상태 화면 노출 — props: `{ applicationId, status }` (T2.4) */
+  REFUND_STATUS_VIEW: "refund_status_view",
   /** 민원 접수 성공 — props: `{ complaintId, leaseId }` (T2.6) */
   COMPLAINT_CREATE_COMPLETE: "complaint_create_complete",
   /** 민원 스레드 노출 — props: `{ complaintId, status, role }` (T2.6) */

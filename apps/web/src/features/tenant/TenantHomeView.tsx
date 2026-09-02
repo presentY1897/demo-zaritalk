@@ -12,7 +12,8 @@
  * |---|---|---|---|
  * | 「자리페이로 결제」 | `/tenant/pay/[chargeId]` | [T2.2](../../../../docs/tasks/t2.2-pay-ui.md) ✅ | 연결됨 (납부할 잔액이 있을 때만) |
  * | 납부 이력 | `/tenant/payments` | T2.2 ✅ | 화면은 있고 홈 진입점은 두지 않았다 |
- * | 환급 배너 | `/refund/calculator` | T2.3 ✅ (신청은 [T2.4](../../../../docs/tasks/t2.4-refund-apply.md)) | 연결됨 |
+ * | 환급 배너 | `/refund/calculator` | T2.3 ✅ | 연결됨 (배너 클릭 = 계산기) |
+ * | 환급 신청 현황 | `/tenant/refund` | [T2.4](../../../../docs/tasks/t2.4-refund-apply.md) ✅ | 배너 아래 링크 + 세입자 탭바 「환급」 |
  * | 민원 접수 | `/tenant/complaints` | [T2.6](../../../../docs/tasks/t2.6-complaint.md) ✅ | 연결됨 |
  *
  * 목적지가 아직 없는 버튼은 **비활성 + "곧 제공"** 으로 둔다 — 눌러서 404 로 빠지지 않게.
@@ -107,6 +108,13 @@ const soonStyle = css({
   textAlign: "center",
 });
 const bannerLinkStyle = css({ textDecoration: "none", color: "inherit", display: "block" });
+/** 환급 배너 아래 보조 링크 — 신청 현황(`/tenant/refund`, T2.4)으로 (T1.3 배너는 계산기로 간다) */
+const refundStatusLinkStyle = css({
+  textStyle: "caption",
+  color: "text.brand",
+  textDecoration: "underline",
+  alignSelf: "flex-end",
+});
 const bannerStyle = css({
   display: "flex",
   alignItems: "center",
@@ -338,7 +346,12 @@ export function TenantHomeView({ home }: { home: TenantHomeDto }) {
           </Card>
         ) : null}
 
-        {/* T2.3·T2.4(환급) 자리 — 탭 목적지 `/tenant/refund` 는 T0.5 가 이미 깔아 뒀다 */}
+        {/*
+          환급 — 배너는 **계산기**(비로그인도 쓰는 유입 경로, T2.3)로 보내고, 신청 현황은
+          그 아래 링크와 탭바 「환급」(`/tenant/refund`, T2.4)으로 들어간다.
+          배너 자체를 현황으로 돌리지 않은 이유: 아직 신청한 적 없는 세입자에게는 "얼마 받는지"가
+          먼저다. 상태 화면의 빈 상태도 계산기로 한 번 더 안내한다.
+        */}
         <Link
           href="/refund/calculator"
           className={bannerLinkStyle}
@@ -351,6 +364,14 @@ export function TenantHomeView({ home }: { home: TenantHomeDto }) {
               연도별 예상 환급액이 바로 나옵니다.
             </p>
           </Card>
+        </Link>
+
+        <Link
+          href="/tenant/refund"
+          className={refundStatusLinkStyle}
+          data-testid="tenant-refund-status-link"
+        >
+          이미 신청했나요? 신청 현황 보기 →
         </Link>
 
         <Card padding="md" data-testid="tenant-complaint-cta">
