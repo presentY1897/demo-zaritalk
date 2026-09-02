@@ -67,7 +67,12 @@ export type KnownTrackEventName =
   | "complaint_create_complete"
   | "complaint_thread_view"
   | "complaint_message_send"
-  | "complaint_status_change";
+  | "complaint_status_change"
+  | "pay_checkout_view"
+  | "pay_request_start"
+  | "pay_confirm_complete"
+  | "pay_confirm_fail"
+  | "pay_history_view";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

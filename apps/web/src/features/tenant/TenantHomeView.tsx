@@ -10,8 +10,8 @@
  * ## Phase 2 가 채울 자리
  * | 자리 | 목적지 | 담당 task | 지금 |
  * |---|---|---|---|
- * | 「자리페이로 결제」 | `/tenant/pay/[chargeId]` | [T2.2](../../../../docs/tasks/t2.2-pay-ui.md) | 비활성 + "곧 제공" |
- * | 납부 이력 | `/tenant/payments` | T2.2 | 비활성 |
+ * | 「자리페이로 결제」 | `/tenant/pay/[chargeId]` | [T2.2](../../../../docs/tasks/t2.2-pay-ui.md) ✅ | 연결됨 (납부할 잔액이 있을 때만) |
+ * | 납부 이력 | `/tenant/payments` | T2.2 ✅ | 화면은 있고 홈 진입점은 두지 않았다 |
  * | 환급 배너 | `/refund/calculator` | T2.3 ✅ (신청은 [T2.4](../../../../docs/tasks/t2.4-refund-apply.md)) | 연결됨 |
  * | 민원 접수 | `/tenant/complaints` | [T2.6](../../../../docs/tasks/t2.6-complaint.md) ✅ | 연결됨 |
  *
@@ -193,12 +193,20 @@ function LeaseCard({ card, monthLabel }: { card: TenantLeaseCardDto; monthLabel:
       <p className={sectionLabelStyle}>{monthLabel} 납부</p>
       <CurrentCharge charge={currentCharge} monthLabel={monthLabel} />
 
-      {/* T2.2(자리페이·토스) 자리 — 목적지 `/tenant/pay/[chargeId]` 가 아직 없어 비활성으로 둔다 */}
       <div className={actionStyle}>
-        <Button fullWidth disabled data-testid="tenant-pay-cta">
-          자리페이로 결제{payable ? ` · ${formatKrw(currentCharge.outstanding)}` : ""}
-        </Button>
-        <p className={soonStyle}>카드 결제는 곧 제공됩니다 (T2.2).</p>
+        {payable ? (
+          <Link
+            href={`/tenant/pay/${currentCharge.id}`}
+            className={buttonRecipe({ variant: "primary", size: "md", fullWidth: true })}
+            data-testid="tenant-pay-cta"
+          >
+            자리페이로 결제 · {formatKrw(currentCharge.outstanding)}
+          </Link>
+        ) : (
+          <Button fullWidth disabled data-testid="tenant-pay-cta">
+            자리페이로 결제
+          </Button>
+        )}
       </div>
 
       <p className={sectionLabelStyle}>계약 조건</p>

@@ -81,6 +81,16 @@ export const TRACK_EVENTS = {
   COMPLAINT_MESSAGE_SEND: "complaint_message_send",
   /** 임대인 상태 변경 성공 — props: `{ complaintId, from, to }` (T2.6) */
   COMPLAINT_STATUS_CHANGE: "complaint_status_change",
+  /** 자리페이 결제 화면 노출 — props: `{ chargeId, amount, status }` (T2.2) */
+  PAY_CHECKOUT_VIEW: "pay_checkout_view",
+  /** 토스 위젯 결제 요청(결제창 호출) — props: `{ chargeId, orderId, amount }` (T2.2) */
+  PAY_REQUEST_START: "pay_request_start",
+  /** 결제 승인 성공 — props: `{ chargeId, orderId, amount, chargeStatus }` (T2.1·T2.2) */
+  PAY_CONFIRM_COMPLETE: "pay_confirm_complete",
+  /** 결제 승인 실패·중단 — props: `{ orderId, code, reason }` (T2.1·T2.2) */
+  PAY_CONFIRM_FAIL: "pay_confirm_fail",
+  /** 세입자 납부 이력 노출 — props: `{ count, cardCount }` (T2.2) */
+  PAY_HISTORY_VIEW: "pay_history_view",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;

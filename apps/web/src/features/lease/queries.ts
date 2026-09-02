@@ -10,7 +10,7 @@
  * `describeCharge`(표시 분해) · `resolveChargeStatus`(상태) · `sumPayments`(납부 합계) ·
  * `calcOutstanding`(잔액) · `kstToday`(판정 기준일).
  */
-import { prisma } from "@zari/db";
+import { Prisma, prisma } from "@zari/db";
 import { deriveUnitStatus } from "@/features/landlord/unit-status";
 import {
   calcOutstanding,
@@ -273,14 +273,26 @@ export async function getCharge(chargeId: string): Promise<ChargeDto | null> {
 }
 
 /**
+ * 재계산이 쓰는 Prisma 인터페이스 — 전역 클라이언트와 `$transaction` 의 tx 클라이언트를 함께 받는다.
+ * (T2.1 자리페이가 승인 결과를 **한 트랜잭션 안에서** 원장에 반영하려고 넓혔다.)
+ */
+export type ChargeDbClient = Pick<typeof prisma, "rentCharge"> | Prisma.TransactionClient;
+
+/**
  * **납부 추가·삭제 후 상태 재계산** (T1.4 가 후속 task 에 요구한 흐름).
  *
  * `paidAmount` 의 원본은 `RentPayment` 합계다 — 크론은 상태만 고쳐 주고 `paidAmount` 는 손대지 않으므로
  * 납부가 바뀔 때마다 여기서 `sumPayments` → `resolveChargeStatus` 로 **둘을 같이** 갱신한다.
  * 갱신된 청구 DTO 를 그대로 돌려주므로 호출부가 다시 읽을 필요가 없다.
+ *
+ * `client` 를 넘기지 않으면 전역 prisma 로 동작한다(기존 호출부 그대로). 카드 결제(T2.1)는
+ * `prisma.$transaction` 의 tx 를 넘겨 **납부 생성과 청구 갱신을 원자적으로** 처리한다.
  */
-export async function recalcCharge(chargeId: string): Promise<ChargeDto | null> {
-  const charge = await prisma.rentCharge.findUnique({
+export async function recalcCharge(
+  chargeId: string,
+  client: ChargeDbClient = prisma,
+): Promise<ChargeDto | null> {
+  const charge = await client.rentCharge.findUnique({
     where: { id: chargeId },
     include: chargeInclude,
   });
@@ -299,7 +311,7 @@ export async function recalcCharge(chargeId: string): Promise<ChargeDto | null> 
     return toChargeDto(charge, asOf);
   }
 
-  await prisma.rentCharge.update({ where: { id: chargeId }, data: { paidAmount, status } });
+  await client.rentCharge.update({ where: { id: chargeId }, data: { paidAmount, status } });
   return toChargeDto({ ...charge, paidAmount, status }, asOf);
 }
 
