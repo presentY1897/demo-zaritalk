@@ -1,7 +1,18 @@
 /**
- * `GET·PATCH·DELETE /api/listings/[id]` — 매물 상세·수정·상태 변경·삭제 (T3.1).
+ * `GET·PATCH·DELETE /api/listings/[id]` — 매물 상세(T3.3) · 수정·상태 변경·삭제 (T3.1).
  *
- * 권한은 등록과 같다(`requireListingActorForListing`) — **소유 임대인 또는 수락 중개인**.
+ * ## `GET` 은 **비로그인 공개**다 (T3.3 이 넓혔다)
+ *
+ * T3.1 때는 이 `GET` 도 소유 임대인·수락 중개인만 읽을 수 있었다. T3.3 의 `/listings/[id]`
+ * 는 **검색 유입을 받는 공개 상세 화면**이라(문서의 robots 절) 같은 리소스를 공개로 넓혔다.
+ * 응답은 `PublicListingDto` 하나뿐이고 **등록자 이름·연락처는 담기지 않는다**
+ * (`features/listing/public.ts` 주석 — 무엇을 담고 무엇을 빼는지의 단일 출처).
+ *
+ * 없는 id 는 404, 그 밖에는 200 이다. **예약·종료 매물도 404 로 감추지 않는다** —
+ * 이미 공유된 링크가 갑자기 404 가 되면 안 되고, 화면이 상태 배너 + `noindex` 로 처리한다.
+ *
+ * `PATCH`·`DELETE` 의 권한은 그대로다(`requireListingActorForListing`) —
+ * **소유 임대인 또는 수락 중개인**.
  * 다만 **삭제는 임대인만** 한다: 중개인이 임대인의 매물 이력을 지울 수 있으면 안 되고,
  * 중개인이 매물을 내리는 정상 경로는 `status: "CLOSED"` 다.
  *
@@ -14,20 +25,27 @@
  * 라고 안내하는데, 매물을 지울 길이 없으면 그 안내를 따를 수 없다.
  */
 import { prisma } from "@zari/db";
+import { resolveCommuteWorkplace } from "@/features/listing/commute";
 import { requireListingActorForListing } from "@/features/listing/permissions";
+import { getPublicListing } from "@/features/listing/public";
 import { getListing, getUnitStatus, isOccupied } from "@/features/listing/queries";
 import { updateListingSchema } from "@/features/listing/schema";
 import { checkStatusTransition } from "@/features/listing/status";
-import { fail, noContent, ok, parseJson } from "@/lib/api/response";
+import { listingDetailQuerySchema } from "@/features/search/schema";
+import { fail, noContent, ok, parseJson, parseQuery } from "@/lib/api/response";
 
 type Context = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, context: Context): Promise<Response> {
+export async function GET(request: Request, context: Context): Promise<Response> {
   const { id } = await context.params;
-  const actor = await requireListingActorForListing(id);
-  if (actor.response) return actor.response;
 
-  const listing = await getListing(id);
+  const parsed = parseQuery(request, listingDetailQuerySchema);
+  if (parsed.response) return parsed.response;
+
+  // 세션을 요구하지 않는다 — 있으면 통근 배지(T3.5 자리)에만 쓴다
+  const commuteWorkplace = await resolveCommuteWorkplace(parsed.data.workplaceId);
+
+  const listing = await getPublicListing(id, { commuteWorkplace });
   if (!listing) return fail("NOT_FOUND", "매물을 찾을 수 없습니다.");
   return ok({ listing });
 }

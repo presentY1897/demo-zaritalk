@@ -141,6 +141,23 @@ export const TRACK_EVENTS = {
   LISTING_UPDATE_COMPLETE: "listing_update_complete",
   /** 매물 상태 변경 성공 — props: `{ listingId, from, to }` (T3.1) */
   LISTING_STATUS_CHANGE: "listing_status_change",
+  /** 지도 탐색 화면 노출 — props: `{ count, dealType, loggedIn, filtered }` (T3.2) */
+  LISTING_SEARCH_VIEW: "listing_search_view",
+  /** 지도를 움직여 목록이 갱신됨 — props: `{ count, refetched, truncated }` (T3.2) */
+  LISTING_MAP_MOVE: "listing_map_move",
+  /** 탐색 필터 변경 — props: `{ dealType, depositMax, rentMax, count }` (T3.2) */
+  LISTING_FILTER_CHANGE: "listing_filter_change",
+  /**
+   * 리스트 카드에서 상세로 진입 — props: `{ listingId, source }` (T3.2).
+   * 지금 `source` 는 `list` 뿐이다 — 지도 핀은 상세로 가지 않고 해당 카드로 스크롤한다.
+   */
+  LISTING_CARD_CLICK: "listing_card_click",
+  /** 매물 상세 노출 — props: `{ listingId, status, dealType, loggedIn }` (T3.3) */
+  LISTING_DETAIL_VIEW: "listing_detail_view",
+  /** 상세의 문의(더미) 열기 — props: `{ listingId, dealType }` (T3.3) */
+  LISTING_INQUIRY_CLICK: "listing_inquiry_click",
+  /** 「내 근무지까지」 클릭 — props: `{ listingId, state }` (T3.3, 계산은 T3.5) */
+  LISTING_COMMUTE_CLICK: "listing_commute_click",
   /** 근무지 등록 성공 — props: `{ workplaceId, total }` (T3.4) */
   WORKPLACE_CREATE_COMPLETE: "workplace_create_complete",
   /** 근무지 삭제 성공 — props: `{ workplaceId, total }` (T3.4) */

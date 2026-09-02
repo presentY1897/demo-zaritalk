@@ -78,3 +78,68 @@ export async function createListingRow(
     },
   });
 }
+
+/**
+ * 좌표를 지정한 건물 + 호실 1개 + 매물 1건 (T3.2 영역·필터 조회 테스트용).
+ *
+ * T1.1 의 `createBuildingWithUnits` 는 좌표가 고정이라(행당해피빌) 영역 안/밖을 가를 수 없다.
+ * 여기서는 좌표를 받아 **한 건물에 한 매물**을 만든다 — 지도 핀 하나가 매물 하나인 구조 그대로다.
+ */
+export async function createListingAt(input: {
+  ownerProfileId: string;
+  lat: number;
+  lng: number;
+  name?: string;
+  label?: string;
+  dealType?: "JEONSE" | "WOLSE";
+  deposit?: number;
+  monthlyRent?: number;
+  status?: "OPEN" | "RESERVED" | "CLOSED";
+  description?: string | null;
+  photos?: string[];
+  availableFrom?: Date | null;
+  floor?: number | null;
+  areaM2?: number | null;
+  rooms?: number | null;
+}) {
+  const dealType = input.dealType ?? "WOLSE";
+  const building = await prisma.building.create({
+    data: {
+      ownerProfileId: input.ownerProfileId,
+      name: input.name ?? "테스트빌",
+      address: "서울 성동구 행당동 347",
+      roadAddress: "서울 성동구 행당로 79",
+      lat: input.lat,
+      lng: input.lng,
+      units: {
+        create: [
+          {
+            label: input.label ?? "101호",
+            floor: input.floor ?? 1,
+            areaM2: input.areaM2 ?? 23.1,
+            rooms: input.rooms ?? 1,
+          },
+        ],
+      },
+    },
+    include: { units: true },
+  });
+  const unit = building.units[0];
+  if (!unit) throw new Error("호실 생성 실패");
+
+  const listing = await prisma.listing.create({
+    data: {
+      unitId: unit.id,
+      listedByProfileId: input.ownerProfileId,
+      dealType,
+      deposit: input.deposit ?? 10_000_000,
+      monthlyRent: input.monthlyRent ?? (dealType === "JEONSE" ? 0 : 500_000),
+      status: input.status ?? "OPEN",
+      description: input.description ?? null,
+      ...(input.photos ? { photos: input.photos } : {}),
+      availableFrom: input.availableFrom ?? null,
+    },
+  });
+
+  return { building, unit, listing };
+}
