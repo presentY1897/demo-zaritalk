@@ -58,14 +58,16 @@
 | [T2.1](./tasks/t2.1-toss-api.md) | 토스 결제 API | ✅ |
 | [T2.2](./tasks/t2.2-pay-ui.md) | 결제 UI | ✅ |
 | [T2.3](./tasks/t2.3-refund-calc.md) | 환급 계산기 | ✅ |
-| [T2.4](./tasks/t2.4-refund-apply.md) | 환급 신청 | ⬜ |
-| [T2.5](./tasks/t2.5-refund-review.md) | 어드민 환급 심사 큐 | ⬜ |
+| [T2.4](./tasks/t2.4-refund-apply.md) | 환급 신청 | ✅ |
+| [T2.5](./tasks/t2.5-refund-review.md) | 어드민 환급 심사 큐 | ✅ |
 | [T2.6](./tasks/t2.6-complaint.md) | 민원 접수·스레드 | ✅ |
 
 **Phase 완료 조건**
-- [ ] 전 task ✅ (결제 confirm·환급 계산 단위 테스트 포함)
-- [ ] E2E: 카드결제 / 환급 심사 왕복 여정 green
-- [ ] 라이브에서 토스 테스트 결제 시연 가능
+- [x] 전 task ✅ (결제 confirm·환급 계산 단위 테스트 포함)
+- [x] E2E: 카드결제 / 환급 심사 왕복 여정 green
+- [x] 라이브에서 토스 테스트 결제 시연 가능
+
+**Phase 2 완료 (2026-09-02).**
 
 ## Phase 3 — 매물·중개·통근
 
@@ -108,8 +110,8 @@
 
 | task | 내용 | 상태 |
 |---|---|---|
-| [T5.1](./tasks/t5.1-workorder.md) | 작업 의뢰 생성·민원 전환 | ⬜ |
-| [T5.2](./tasks/t5.2-master-feed.md) | 마스터 의뢰 피드 — pull + 유료 push 추천 | ⬜ |
+| [T5.1](./tasks/t5.1-workorder.md) | 작업 의뢰 생성·민원 전환 | ✅ |
+| [T5.2](./tasks/t5.2-master-feed.md) | 마스터 의뢰 피드 — pull + 유료 push 추천 | ✅ |
 | [T5.3](./tasks/t5.3-quote.md) | 견적 제안·수락 | ⬜ |
 
 **Phase 완료 조건**

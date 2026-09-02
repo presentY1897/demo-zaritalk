@@ -76,13 +76,20 @@ export function BuildingListView({ initialBuildings }: { initialBuildings: Build
           </p>
         </div>
         <div className={actionsStyle}>
-          {/* 임대장부(T1.6) 진입점 — T0.5 탭 배정표에 장부 탭이 없어 자산 화면에서 들어간다 */}
+          {/* 임대장부(T1.6)·작업 의뢰(T5.1) 진입점 — T0.5 탭 배정표에 탭이 없어 자산 화면에서 들어간다 */}
           <Link
             href="/landlord/ledger"
             className={buttonRecipe({ variant: "secondary", size: "sm" })}
             data-testid="ledger-link"
           >
             장부
+          </Link>
+          <Link
+            href="/landlord/workorders"
+            className={buttonRecipe({ variant: "secondary", size: "sm" })}
+            data-testid="workorders-link"
+          >
+            작업 의뢰
           </Link>
           <Button size="sm" onClick={() => setOpen(true)} data-testid="building-add">
             건물 추가
