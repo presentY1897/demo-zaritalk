@@ -25,7 +25,11 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? "list" : "html",
+  // CI 에서도 HTML 리포트를 남긴다 — 실패 시 워크플로가 아티팩트로 올려 주는데,
+  // list 만 쓰면 playwright-report/ 가 없어 업로드할 것이 없었다(실제로 겪음).
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never" }], ["json", { outputFile: "playwright-report/results.json" }]]
+    : "html",
   use: {
     baseURL,
     trace: "on-first-retry",

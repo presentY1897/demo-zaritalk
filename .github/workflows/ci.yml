@@ -85,6 +85,28 @@ jobs:
       - name: E2E tests
         run: pnpm test:e2e
 
+      # 로그 열람에 인증이 필요해 실패 원인을 밖에서 못 보는 일이 있었다 —
+      # 실패한 스펙·에러 메시지를 잡 로그 맨 끝에 요약해 둔다.
+      - name: 실패 요약
+        if: failure()
+        run: |
+          echo "===== 실패한 E2E 스펙 ====="
+          node -e '
+            const fs = require("fs");
+            const p = "playwright-report/results.json";
+            if (!fs.existsSync(p)) { console.log("(리포트 없음)"); process.exit(0); }
+            const r = JSON.parse(fs.readFileSync(p, "utf8"));
+            const walk = (s) => (s.suites ?? []).flatMap(walk).concat(s.specs ?? []);
+            for (const spec of (r.suites ?? []).flatMap(walk)) {
+              if (spec.ok) continue;
+              console.log("✘", spec.title);
+              for (const t of spec.tests ?? [])
+                for (const res of t.results ?? [])
+                  if (res.error) console.log("   ", (res.error.message ?? "").split("\n").slice(0, 6).join("\n    "));
+            }
+          '
+
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
