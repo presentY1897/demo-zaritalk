@@ -61,7 +61,11 @@ export type KnownTrackEventName =
   | "tenant_lease_accept_view"
   | "tenant_lease_accept_complete"
   | "tenant_lease_decline_complete"
-  | "tenant_home_view";
+  | "tenant_home_view"
+  | "complaint_create_complete"
+  | "complaint_thread_view"
+  | "complaint_message_send"
+  | "complaint_status_change";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

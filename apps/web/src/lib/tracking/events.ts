@@ -69,6 +69,14 @@ export const TRACK_EVENTS = {
   TENANT_LEASE_DECLINE_COMPLETE: "tenant_lease_decline_complete",
   /** 세입자 홈 노출 — props: `{ leaseCount, pendingCount, outstanding }` (T1.3) */
   TENANT_HOME_VIEW: "tenant_home_view",
+  /** 민원 접수 성공 — props: `{ complaintId, leaseId }` (T2.6) */
+  COMPLAINT_CREATE_COMPLETE: "complaint_create_complete",
+  /** 민원 스레드 노출 — props: `{ complaintId, status, role }` (T2.6) */
+  COMPLAINT_THREAD_VIEW: "complaint_thread_view",
+  /** 스레드 메시지 전송 성공 — props: `{ complaintId, role }` (T2.6) */
+  COMPLAINT_MESSAGE_SEND: "complaint_message_send",
+  /** 임대인 상태 변경 성공 — props: `{ complaintId, from, to }` (T2.6) */
+  COMPLAINT_STATUS_CHANGE: "complaint_status_change",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;
