@@ -12,17 +12,29 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  acceptQuote,
   convertComplaintToWorkOrder,
   createWorkOrder,
   fetchWorkOrders,
+  submitQuote,
   updateWorkOrder,
 } from "./api";
-import type { ConvertComplaintInput, CreateWorkOrderInput, UpdateWorkOrderInput } from "./schema";
+import type {
+  ConvertComplaintInput,
+  CreateQuoteInput,
+  CreateWorkOrderInput,
+  UpdateWorkOrderInput,
+} from "./schema";
 import type { ListWorkOrdersResult } from "./types";
 
 export const workOrderKeys = {
   all: ["work-orders"] as const,
   list: () => ["work-orders", "list"] as const,
+};
+
+/** 견적 캐시 키 (T5.3) — 제안·수락이 양쪽 화면의 목록을 함께 흔든다 */
+export const quoteKeys = {
+  all: ["quotes"] as const,
 };
 
 export function useWorkOrders(initialData?: ListWorkOrdersResult) {
@@ -63,6 +75,32 @@ export function useConvertComplaint(complaintId: string) {
       convertComplaintToWorkOrder(complaintId, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: workOrderKeys.all });
+    },
+  });
+}
+
+/** 견적 제안(마스터) — 성공하면 「내 견적」 목록도 다시 읽는다 (T5.3) */
+export function useSubmitQuote(workOrderId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateQuoteInput) => submitQuote(workOrderId, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: quoteKeys.all });
+    },
+  });
+}
+
+/**
+ * 견적 수락(임대인) — 응답에 **갱신된 견적 전부**가 실려 오므로 화면은 그대로 갈아 끼운다.
+ * 의뢰 목록의 상태 배지도 바뀌므로 목록 캐시를 비운다.
+ */
+export function useAcceptQuote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (quoteId: string) => acceptQuote(quoteId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: workOrderKeys.all });
+      await queryClient.invalidateQueries({ queryKey: quoteKeys.all });
     },
   });
 }

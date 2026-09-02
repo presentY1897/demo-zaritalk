@@ -14,14 +14,25 @@
  * | `DONE` 완료 | ❌ | ❌ |
  * | `CANCELLED` 취소 | ❌ | ❌ |
  *
- * - **임대인이 고를 수 있는 목표는 완료·취소 둘뿐이다.** `QUOTED`·`ASSIGNED` 는 사람이 고르는
- *   값이 아니라 견적(T5.3)이 도착·수락되며 시스템이 옮기는 값이라 요청 스키마 enum 에서 빠져 있다
- *   (보내면 400). 민원 상태(T2.6)에서 `OPEN` 을 뺀 것과 같은 이유다.
+ * - **임대인이 고를 수 있는 목표는 완료·취소 둘뿐이다.** `ASSIGNED` 는 사람이 고르는 값이 아니라
+ *   견적 수락(T5.3 `POST /api/quotes/[id]/accept`)이 옮기는 값이라 요청 스키마 enum 에서
+ *   빠져 있다(보내면 400). 민원 상태(T2.6)에서 `OPEN` 을 뺀 것과 같은 이유다.
+ * - **`QUOTED` 는 아무도 쓰지 않는다.** 견적이 도착해도 의뢰는 `REQUESTED` 로 남는다 —
+ *   마스터 피드(T5.2 pull)가 `REQUESTED` 만 보기 때문에 상태를 올리면 **두 번째 마스터가
+ *   그 의뢰를 찾을 길이 사라져** "견적 2개 이상 비교" 라는 T5.3 완료 기준이 깨진다.
+ *   근거는 [t5.3-quote.md](../../../../../docs/tasks/t5.3-quote.md#의뢰-상태-전이--quoted-를-쓰지-않는다).
+ *   라벨·전이표에는 남겨 둔다(견적 마감 개념이 생기면 그 자리다).
  * - **종결(완료·취소)은 되돌릴 수 없다.** 돈이 오가는 작업의 종결 사유를 조용히 바꿔치기하지
  *   못하게 한 선택이다 — 다시 하려면 의뢰를 새로 낸다.
  * - 같은 상태로의 전이도 거부(409)한다. 화면에서는 그 버튼이 비활성이다.
  */
-import type { MasterCategoryValue, WorkOrderPlaceDto, WorkOrderStatusValue } from "./types";
+import type {
+  MasterCategoryValue,
+  QuoteSource,
+  QuoteStatusValue,
+  WorkOrderPlaceDto,
+  WorkOrderStatusValue,
+} from "./types";
 
 export type StatusTone = "success" | "warning" | "danger" | "info" | "neutral";
 export type StatusMeta = { label: string; tone: StatusTone };
@@ -111,4 +122,65 @@ export const MASTER_CATEGORY_ORDER = [
 export function formatWorkOrderPlace(place: WorkOrderPlaceDto | null): string {
   if (!place) return "대상 미지정";
   return place.unitLabel ? `${place.buildingName} ${place.unitLabel}` : `${place.buildingName} 공용부`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 견적 (T5.3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 견적 상태 — 배지 라벨과 tone.
+ *
+ * 수락은 한 의뢰에 한 건뿐이고, 수락되는 순간 나머지는 전부 `REJECTED` 가 된다
+ * (`POST /api/quotes/[id]/accept` 의 트랜잭션). 그래서 「제안」은 **아직 결정 전**이라는 뜻이다.
+ */
+export const QUOTE_STATUS_META: Record<QuoteStatusValue, StatusMeta> = {
+  PROPOSED: { label: "제안", tone: "info" },
+  ACCEPTED: { label: "수락", tone: "success" },
+  REJECTED: { label: "거절", tone: "neutral" },
+};
+
+/** 마스터 「내 견적」 목록의 필터 순서 */
+export const QUOTE_STATUS_ORDER: readonly QuoteStatusValue[] = [
+  "PROPOSED",
+  "ACCEPTED",
+  "REJECTED",
+];
+
+/** 아직 결과가 나오지 않은 견적인가 — 목록에서 위로 올린다 */
+export function isPendingQuote(status: QuoteStatusValue): boolean {
+  return status === "PROPOSED";
+}
+
+/**
+ * 견적이 **어느 길로 온 의뢰**에 낸 것인지 (push 추천 / pull 피드).
+ * `Badge` 의 tone 을 그대로 쓴다 — 하드코딩 색상 0(T0.6).
+ */
+export const QUOTE_SOURCE_META: Record<
+  QuoteSource,
+  { label: string; tone: "brand" | "neutral"; hint: string }
+> = {
+  PUSH: { label: "추천", tone: "brand", hint: "추천(push)으로 받은 의뢰" },
+  PULL: { label: "피드", tone: "neutral", hint: "전체 피드(pull)에서 찾은 의뢰" },
+};
+
+/** "180,000원" — 견적 금액 표기(원 단위 정수) */
+export function formatQuoteAmount(amount: number): string {
+  return `${amount.toLocaleString("ko-KR")}원`;
+}
+
+/**
+ * 이 의뢰에 지금 견적을 받을 수 있는가 — **`REQUESTED` 일 때만.**
+ *
+ * 배정(`ASSIGNED`)된 뒤에는 이미 한 업체가 정해졌고, 종결(`DONE`·`CANCELLED`)된 의뢰는
+ * 더 받을 이유가 없다. API 는 이 함수가 false 면 409 를 준다.
+ */
+export function acceptsNewQuote(status: WorkOrderStatusValue): boolean {
+  return status === "REQUESTED";
+}
+
+/** 견적을 받을 수 없는 이유 — API 409 메시지와 화면 안내가 같은 문구를 쓴다 */
+export function quoteRejectReason(status: WorkOrderStatusValue): string {
+  if (status === "ASSIGNED") return "이미 다른 업체가 배정된 의뢰입니다.";
+  return `「${WORK_ORDER_STATUS_META[status].label}」 상태의 의뢰에는 견적을 낼 수 없습니다.`;
 }

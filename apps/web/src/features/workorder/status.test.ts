@@ -1,20 +1,28 @@
 /**
- * 작업 의뢰 상태 전이표·라벨 단위 테스트 (T5.1) — **DB 없이 돈다**(순수 모듈).
+ * 작업 의뢰 상태 전이표·라벨 + 견적 표시 규칙 단위 테스트 (T5.1·T5.3) —
+ * **DB 없이 돈다**(순수 모듈).
  */
 import { describe, expect, test } from "vitest";
 import {
+  acceptsNewQuote,
   ALLOWED_WORK_ORDER_TRANSITIONS,
   canTransitionWorkOrder,
+  formatQuoteAmount,
   formatWorkOrderPlace,
   isOpenWorkOrder,
+  isPendingQuote,
   MASTER_CATEGORY_META,
   MASTER_CATEGORY_ORDER,
+  QUOTE_SOURCE_META,
+  QUOTE_STATUS_META,
+  QUOTE_STATUS_ORDER,
+  quoteRejectReason,
   WORK_ORDER_STATUS_META,
   WORK_ORDER_STATUS_ORDER,
   WORK_ORDER_STATUS_TARGETS,
   workOrderTransitionRejectReason,
 } from "./status";
-import type { WorkOrderStatusValue } from "./types";
+import type { QuoteStatusValue, WorkOrderStatusValue } from "./types";
 
 describe("상태 전이표", () => {
   test("요청 → 완료·취소 둘 다 된다", () => {
@@ -109,5 +117,45 @@ describe("대상 표기", () => {
 
   test("건물 자체가 없으면 '대상 미지정'", () => {
     expect(formatWorkOrderPlace(null)).toBe("대상 미지정");
+  });
+});
+
+describe("견적 (T5.3)", () => {
+  test("견적을 받을 수 있는 상태는 REQUESTED 뿐이다", () => {
+    expect(acceptsNewQuote("REQUESTED")).toBe(true);
+    for (const status of ["QUOTED", "ASSIGNED", "DONE", "CANCELLED"] as WorkOrderStatusValue[]) {
+      expect(acceptsNewQuote(status)).toBe(false);
+    }
+  });
+
+  test("배정된 의뢰의 거부 문구는 '이미 다른 업체' 를 말한다", () => {
+    expect(quoteRejectReason("ASSIGNED")).toContain("배정");
+    expect(quoteRejectReason("DONE")).toContain("완료");
+    expect(quoteRejectReason("CANCELLED")).toContain("취소");
+  });
+
+  test("상태 라벨은 셋 다 있고 tone 이 겹치지 않는다", () => {
+    const statuses: QuoteStatusValue[] = ["PROPOSED", "ACCEPTED", "REJECTED"];
+    for (const status of statuses) expect(QUOTE_STATUS_META[status].label).toBeTruthy();
+    expect(QUOTE_STATUS_META.ACCEPTED.tone).toBe("success");
+    expect(QUOTE_STATUS_ORDER).toEqual(statuses);
+  });
+
+  test("아직 결정 전인 것은 제안뿐이다", () => {
+    expect(isPendingQuote("PROPOSED")).toBe(true);
+    expect(isPendingQuote("ACCEPTED")).toBe(false);
+    expect(isPendingQuote("REJECTED")).toBe(false);
+  });
+
+  test("push/pull 라벨이 서로 다르다 — 화면에서 구분이 되어야 한다", () => {
+    expect(QUOTE_SOURCE_META.PUSH.label).toBe("추천");
+    expect(QUOTE_SOURCE_META.PULL.label).toBe("피드");
+    expect(QUOTE_SOURCE_META.PUSH.tone).not.toBe(QUOTE_SOURCE_META.PULL.tone);
+  });
+
+  test("금액은 천 단위로 끊어 원을 붙인다", () => {
+    expect(formatQuoteAmount(180_000)).toBe("180,000원");
+    expect(formatQuoteAmount(1_000)).toBe("1,000원");
+    expect(formatQuoteAmount(1_250_000)).toBe("1,250,000원");
   });
 });

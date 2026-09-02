@@ -7,7 +7,14 @@
  * 매칭 테스트가 거리를 눈으로 읽을 수 있어야 해서, 마스터는 "건물에서 북쪽으로 N km" 로 놓는다
  * (`masterPointNorthOf`). 위도 1도 ≈ 111.19km 이므로 오차는 반경 판정에 영향을 주지 않는다.
  */
-import { MasterCategory, MasterPlan, prisma, ProfileType, WorkOrderStatus } from "@zari/db";
+import {
+  MasterCategory,
+  MasterPlan,
+  prisma,
+  ProfileType,
+  QuoteStatus,
+  WorkOrderStatus,
+} from "@zari/db";
 import { createBuildingWithUnits, createLandlord } from "@/features/landlord/testing";
 
 /** 시드 건물(행당해피빌)과 같은 좌표 — `createBuildingWithUnits` 가 쓰는 값이다 */
@@ -112,5 +119,33 @@ export async function addWorkOrder(
       description: overrides.description ?? "201호 온수가 미지근합니다. 보일러 점검 부탁드립니다.",
       status: overrides.status ?? WorkOrderStatus.REQUESTED,
     },
+  });
+}
+
+/** 견적 1건 (기본 `PROPOSED` — 임대인이 아직 고르지 않은 상태) (T5.3) */
+export async function addQuote(
+  workOrderId: string,
+  masterProfileId: string,
+  overrides: { amount?: number; message?: string | null; status?: QuoteStatus } = {},
+) {
+  return prisma.workOrderQuote.create({
+    data: {
+      workOrderId,
+      masterProfileId,
+      amount: overrides.amount ?? 180_000,
+      message: overrides.message === undefined ? "순환펌프 교체 기준입니다." : overrides.message,
+      status: overrides.status ?? QuoteStatus.PROPOSED,
+    },
+  });
+}
+
+/** push 추천 1건 — 견적의 `source` 가 `PUSH` 로 잡히는지 볼 때 쓴다 (T5.3) */
+export async function addWorkOrderTarget(
+  workOrderId: string,
+  masterProfileId: string,
+  distanceKm = 2,
+) {
+  return prisma.workOrderTarget.create({
+    data: { workOrderId, masterProfileId, distanceKm },
   });
 }

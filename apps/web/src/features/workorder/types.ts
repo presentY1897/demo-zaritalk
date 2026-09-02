@@ -14,8 +14,26 @@ export type MasterCategoryValue = "CLEANING" | "INTERIOR" | "REPAIR" | "ETC";
 /** `MasterPlan` 미러 — FREE 는 pull 만, PRO 는 push 추천까지 (D4) */
 export type MasterPlanValue = "FREE" | "PRO";
 
-/** `WorkOrderTargetStatus` 미러. 지금은 `SENT` 만 쓴다(나머지는 T5.3) */
+/**
+ * `WorkOrderTargetStatus` 미러. **코드가 실제로 쓰는 값은 `SENT` 하나다.**
+ *
+ * T5.3 이 `VIEWED`·`ACCEPTED`·`DECLINED` 를 채우지 않기로 한 근거는
+ * [t5.3-quote.md](../../../../../docs/tasks/t5.3-quote.md#workordertargetstatus-를-쓰지-않는다)
+ * 에 적었다 — 요약하면 견적 생애주기의 단일 출처는 `WorkOrderQuote.status` 이고,
+ * `WorkOrderTarget` 은 "그때 이 조건이라 보냈다" 는 **발송 기록**이라 사후에 덮어쓰지 않는다.
+ */
 export type WorkOrderTargetStatusValue = "SENT" | "VIEWED" | "ACCEPTED" | "DECLINED";
+
+/** `QuoteStatus` 미러 — 스키마 enum 과 값이 같아야 한다 (T5.3) */
+export type QuoteStatusValue = "PROPOSED" | "ACCEPTED" | "REJECTED";
+
+/**
+ * 이 견적이 **어느 길로 온 의뢰**에 낸 것인가 (T5.3).
+ *
+ * 스키마에 컬럼을 두지 않고 `WorkOrderTarget` 행의 유무로 판정한다 —
+ * T5.2 의 `recommended` 판정과 **같은 값**이라 두 화면이 어긋날 수 없다.
+ */
+export type QuoteSource = "PUSH" | "PULL";
 
 /** 의뢰가 어디서 왔는가 — 임대인이 직접 쓴 것과 민원에서 넘어온 것 */
 export type WorkOrderSource = "DIRECT" | "COMPLAINT";
@@ -55,7 +73,7 @@ export type LandlordWorkOrderDto = WorkOrderBaseDto & {
   complaintTitle: string | null;
   /** push 추천을 받은 PRO 마스터 수 */
   targetCount: number;
-  /** 받은 견적 수 — 견적 제안은 T5.3 이 연다. 지금은 항상 0 */
+  /** 받은 견적 수(제안·수락·거절 전부) — 상세의 「받은 견적」 배지가 읽는다 */
   quoteCount: number;
 };
 
@@ -68,6 +86,44 @@ export type MasterWorkOrderDto = WorkOrderBaseDto & {
   recommended: boolean;
   /** 추천 발송 시각(추천이 아니면 null) */
   sentAt: string | null;
+};
+
+/**
+ * 임대인 견적 비교 카드 (T5.3) — 「업체·금액·메시지」 한 장.
+ *
+ * `distanceKm` 은 의뢰 건물 ↔ 마스터 사무소 거리다. 건물이 없는 의뢰(스키마상 가능)면 null 이고,
+ * 화면은 거리 줄을 그리지 않는다.
+ */
+export type LandlordQuoteDto = {
+  id: string;
+  workOrderId: string;
+  amount: number;
+  message: string | null;
+  status: QuoteStatusValue;
+  createdAt: string;
+  masterProfileId: string;
+  companyName: string;
+  masterName: string;
+  categories: MasterCategoryValue[];
+  distanceKm: number | null;
+  /** 이 마스터가 추천(push)을 받은 의뢰인가 — 임대인에게도 "어떻게 닿았는지" 를 보여 준다 */
+  source: QuoteSource;
+};
+
+/** 마스터 「내 견적」 카드 (T5.3) — 의뢰 요약을 함께 들고 다닌다 */
+export type MasterQuoteDto = {
+  id: string;
+  amount: number;
+  message: string | null;
+  status: QuoteStatusValue;
+  createdAt: string;
+  /** 추천(push)으로 받은 건인가, 전체 피드(pull)에서 찾은 건인가 */
+  source: QuoteSource;
+  workOrder: WorkOrderBaseDto & {
+    landlordName: string;
+    /** 내 사무소 → 의뢰 건물(km). 건물이 없는 의뢰면 null */
+    distanceKm: number | null;
+  };
 };
 
 /** 의뢰 생성 시트의 대상 선택지 — 내 건물과 그 호실들 */
@@ -100,14 +156,40 @@ export type CreateWorkOrderResult = {
 };
 
 /** `PATCH /api/work-orders/[id]` 응답 */
-export type UpdateWorkOrderResult = { workOrder: LandlordWorkOrderDto };
+export type UpdateWorkOrderResult = {
+  workOrder: LandlordWorkOrderDto;
+  /**
+   * 완료 처리로 함께 닫힌 민원의 상태 (T5.3). 연결 민원이 없으면 null.
+   * 전이표(T2.6 `canTransition`)가 막은 경우에는 **바뀌지 않은 원래 상태**가 온다.
+   */
+  complaintStatus: ComplaintStatusMirror | null;
+};
+
+/** `ComplaintStatus` 미러 — T2.6 `features/complaint/types.ts` 와 값이 같다 */
+export type ComplaintStatusMirror = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "REJECTED";
+
+/** 임대인 의뢰 상세가 한 번에 읽는 것 — 의뢰 + 받은 견적(최신순) (T5.3) */
+export type LandlordWorkOrderDetail = {
+  workOrder: LandlordWorkOrderDto;
+  quotes: LandlordQuoteDto[];
+};
+
+/** `POST /api/work-orders/[id]/quotes` 응답 (T5.3) */
+export type CreateQuoteResult = { quote: MasterQuoteDto };
+
+/**
+ * `POST /api/quotes/[id]/accept` 응답 (T5.3).
+ * 수락 한 건만이 아니라 **갱신된 견적 전부**를 돌려준다 — 나머지가 거절로 바뀐 것도
+ * 같은 응답에 실려 와야 화면이 서버를 다시 묻지 않고 그대로 그린다.
+ */
+export type AcceptQuoteResult = LandlordWorkOrderDetail & { acceptedQuoteId: string };
 
 /** `POST /api/complaints/[id]/convert` 응답 — 스레드가 그대로 갈아 끼운다 */
 export type ConvertComplaintResult = {
   workOrder: LandlordWorkOrderDto;
   dispatchedCount: number;
   /** 전환으로 `IN_PROGRESS` 가 된 민원의 상태 */
-  complaintStatus: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "REJECTED";
+  complaintStatus: ComplaintStatusMirror;
 };
 
 /** `GET /api/master/feed` 응답 (pull — 전 마스터) */
