@@ -5,6 +5,7 @@ import {
   createBuildingWithUnits,
   createLandlord,
   createLease,
+  createTenantOnlyUser,
   loginAs,
 } from "@/features/landlord/testing";
 import { createBrokerageTarget, createListingRow, createRealtor } from "@/features/listing/testing";
@@ -40,32 +41,92 @@ async function scenario(unitLabels = ["101호"]) {
   return { landlord, building, unit, listing };
 }
 
-test("비로그인이면 401, 없는 매물이면 404", async () => {
-  const { landlord, listing } = await scenario();
-  expect((await GET(new Request("http://localhost"), ctx(listing.id))).status).toBe(401);
+/**
+ * `GET` 은 **T3.3 이 비로그인 공개로 넓혔다**(`/listings/[id]` 가 검색 유입 착지점이다).
+ * T3.1 때 이 자리에 있던 401·403 단언은 아래 "남의 매물도 상세는 읽히지만…" 로 바뀌었다 —
+ * 쓰기(`PATCH`·`DELETE`)의 권한은 그대로다.
+ */
+test("비로그인도 매물 상세를 읽는다 — 등록자 이름은 담기지 않는다", async () => {
+  const { listing, unit, building } = await scenario();
 
-  await loginAs(landlord.user.id);
-  expect((await GET(new Request("http://localhost"), ctx("cmf0nope"))).status).toBe(404);
+  const res = await GET(new Request("http://localhost"), ctx(listing.id));
+  expect(res.status).toBe(200);
+
+  const body = await res.json();
+  expect(body.listing.id).toBe(listing.id);
+  expect(body.listing.unitId).toBe(unit.id);
+  expect(body.listing.status).toBe("OPEN");
+  expect(body.listing.priceLabel).toBe("월세 1,000만/50만");
+  expect(body.listing.unit.label).toBe(unit.label);
+  expect(body.listing.building.name).toBe(building.name);
+  expect(body.listing.listedBy).toEqual({ role: "LANDLORD" });
+  // 색인되는 페이지라 개인 이름이 실리면 안 된다
+  expect(JSON.stringify(body)).not.toContain("김임대");
 });
 
-test("남의 매물이면 403", async () => {
+test("없는 매물이면 404", async () => {
+  await scenario();
+  const res = await GET(new Request("http://localhost"), ctx("cmf0nope"));
+  expect(res.status).toBe(404);
+  expect((await res.json()).error.code).toBe("NOT_FOUND");
+});
+
+test("종료(CLOSED)·예약(RESERVED) 매물도 상세는 200 — 404 로 감추지 않는다", async () => {
+  const { landlord, unit } = await scenario();
+  const closed = await createListingRow(unit.id, landlord.profile.id, { status: "CLOSED" });
+  const reserved = await createListingRow(unit.id, landlord.profile.id, { status: "RESERVED" });
+
+  const closedBody = await (await GET(new Request("http://localhost"), ctx(closed.id))).json();
+  expect(closedBody.listing.status).toBe("CLOSED");
+
+  const reservedBody = await (await GET(new Request("http://localhost"), ctx(reserved.id))).json();
+  expect(reservedBody.listing.status).toBe("RESERVED");
+});
+
+test("남의 매물도 상세는 읽히지만 수정·삭제는 403", async () => {
   const { listing } = await scenario();
   const other = await createLandlord("01099999999", "남임대");
   await loginAs(other.user.id);
 
-  const res = await GET(new Request("http://localhost"), ctx(listing.id));
-  expect(res.status).toBe(403);
-  expect((await res.json()).error.code).toBe("FORBIDDEN");
+  expect((await GET(new Request("http://localhost"), ctx(listing.id))).status).toBe(200);
+
+  const patched = await patch(listing.id, { deposit: 1 });
+  expect(patched.status).toBe(403);
+  expect((await patched.json()).error.code).toBe("FORBIDDEN");
+
+  expect((await DELETE(new Request("http://localhost"), ctx(listing.id))).status).toBe(403);
 });
 
-test("소유 임대인은 매물 상세를 읽는다", async () => {
-  const { landlord, listing, unit } = await scenario();
-  await loginAs(landlord.user.id);
+test("통근 배지(T3.5 자리) — 내 근무지의 캐시만 붙는다", async () => {
+  const { listing, unit } = await scenario();
 
-  const body = await (await GET(new Request("http://localhost"), ctx(listing.id))).json();
-  expect(body.listing.id).toBe(listing.id);
-  expect(body.listing.unitId).toBe(unit.id);
-  expect(body.listing.status).toBe("OPEN");
+  const tenant = await createTenantOnlyUser();
+  const workplace = await prisma.workplace.create({
+    data: {
+      tenantProfileId: tenant.profile.id,
+      label: "회사",
+      address: "서울 강남구 강남대로 396",
+      lat: 37.49794,
+      lng: 127.02762,
+    },
+  });
+  await prisma.commuteCache.create({
+    data: { unitId: unit.id, workplaceId: workplace.id, transitMinutes: 38, drivingMinutes: null },
+  });
+
+  const url = `http://localhost/api/listings/${listing.id}?workplaceId=${workplace.id}`;
+
+  // 비로그인은 지정해도 무시된다
+  const anonymous = await (await GET(new Request(url), ctx(listing.id))).json();
+  expect(anonymous.listing.commute).toBeNull();
+
+  await loginAs(tenant.user.id);
+  const mine = await (await GET(new Request(url), ctx(listing.id))).json();
+  expect(mine.listing.commute).toMatchObject({ workplaceLabel: "회사", transitMinutes: 38 });
+
+  // 근무지를 지정하지 않으면 배지도 없다
+  const none = await (await GET(new Request("http://localhost"), ctx(listing.id))).json();
+  expect(none.listing.commute).toBeNull();
 });
 
 test("조건을 수정한다 — 설명은 빈 문자열로 지운다", async () => {

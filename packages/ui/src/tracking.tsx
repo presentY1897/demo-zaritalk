@@ -98,6 +98,13 @@ export type KnownTrackEventName =
   | "listing_create_complete"
   | "listing_update_complete"
   | "listing_status_change"
+  | "listing_search_view"
+  | "listing_map_move"
+  | "listing_filter_change"
+  | "listing_card_click"
+  | "listing_detail_view"
+  | "listing_inquiry_click"
+  | "listing_commute_click"
   | "workplace_create_complete"
   | "workplace_delete_complete";
 
