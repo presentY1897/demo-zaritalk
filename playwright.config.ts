@@ -27,8 +27,16 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   // CI 에서도 HTML 리포트를 남긴다 — 실패 시 워크플로가 아티팩트로 올려 주는데,
   // list 만 쓰면 playwright-report/ 가 없어 업로드할 것이 없었다(실제로 겪음).
+  // `github` 리포터는 실패를 워크플로 annotation(::error::)으로 올려 준다 —
+  // 잡 로그·아티팩트는 열람에 인증이 필요하지만 **annotation 은 공개 API 로 읽힌다**.
+  // CI 실패 원인을 밖에서 확인할 수 있는 유일한 경로라 반드시 유지할 것.
   reporter: process.env.CI
-    ? [["list"], ["html", { open: "never" }], ["json", { outputFile: "playwright-report/results.json" }]]
+    ? [
+        ["github"],
+        ["list"],
+        ["html", { open: "never" }],
+        ["json", { outputFile: "playwright-report/results.json" }],
+      ]
     : "html",
   use: {
     baseURL,
