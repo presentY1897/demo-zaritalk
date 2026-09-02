@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
+    "@tosspayments/tosspayments-sdk": "^2.8.1",
     "@zari/db": "workspace:^",
     "@zari/ui": "workspace:^",
     "jotai": "^2.20.3",
