@@ -20,12 +20,9 @@ import { formatKrw } from "@/features/landlord/format";
 import { TRACK_EVENTS } from "@/lib/tracking/events";
 import type { RefundCalcResult } from "./calc";
 import { REFUND_CTA_SOURCE, refundCtaHref, refundCtaLabel } from "./cta";
+import { REFUND_DISCLAIMER } from "./disclaimer";
 import { useRefundCalculation } from "./hooks";
 import { refundCalcSchema } from "./schema";
-
-/** 화면·응답 어디에나 같은 문구로 붙는 고지. **실제 세법 자문이 아니다.** */
-export const REFUND_DISCLAIMER =
-  "이 계산기는 데모용 추정치입니다. 실제 세법 자문이 아니며, 실제 공제 가능 금액은 소득·부양가족·주택 요건과 연도별 세법 개정에 따라 달라집니다.";
 
 const pageStyle = css({
   px: "gutter",

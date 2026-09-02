@@ -28,19 +28,86 @@ const dateOnlySchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "날짜는 YYYY-MM-DD 형식으로 입력해 주세요.");
 
-export const refundCalcSchema = z
-  .object({
-    /** 연 총급여(원) */
-    grossSalary: grossSalarySchema,
-    /** 월세(원/월) */
-    monthlyRent: monthlyRentSchema,
-    startDate: dateOnlySchema,
-    endDate: dateOnlySchema,
-  })
-  // `YYYY-MM-DD` 는 사전순 비교가 곧 날짜 비교다(T1.2 계약 스키마와 같은 방식)
-  .refine((value) => value.startDate <= value.endDate, {
-    message: "임차 종료일은 시작일보다 빠를 수 없습니다.",
-    path: ["endDate"],
-  });
+/** 계산 입력 4개 — 신청서(T2.4)가 여기에 `leaseId` 만 얹어 쓴다 */
+export const refundCalcObject = z.object({
+  /** 연 총급여(원) */
+  grossSalary: grossSalarySchema,
+  /** 월세(원/월) */
+  monthlyRent: monthlyRentSchema,
+  startDate: dateOnlySchema,
+  endDate: dateOnlySchema,
+});
+
+/** `YYYY-MM-DD` 는 사전순 비교가 곧 날짜 비교다(T1.2 계약 스키마와 같은 방식) */
+const periodOrder = {
+  check: (value: { startDate: string; endDate: string }) => value.startDate <= value.endDate,
+  message: "임차 종료일은 시작일보다 빠를 수 없습니다.",
+  path: ["endDate"] as const,
+};
+
+export const refundCalcSchema = refundCalcObject.refine(periodOrder.check, {
+  message: periodOrder.message,
+  path: [...periodOrder.path],
+});
 
 export type RefundCalcRequest = z.infer<typeof refundCalcSchema>;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T2.4 환급 신청 — 신청서·업로드·심사 요청 스키마
+//
+// 신청 본문은 위 `refundCalcSchema` 를 **그대로 얹는다**(T2.3 이 예고한 접합점).
+// 화면 금액과 신청 금액이 갈라지지 않도록, 서버는 이 입력을 `calculateRefund` 에 넣어
+// `annualIncome`·`startYear`·`endYear`·`expectedAmount` 를 **다시 계산해서** 저장한다.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** cuid 한 개 — 라우트 파라미터·본문의 id 형식 방어 */
+const idSchema = z.string().min(1, "id 가 필요합니다.").max(64);
+
+/**
+ * 신청서 본문 — 계산 입력 + (선택) 내 계약 연결.
+ * **계산기와 같은 필드·같은 검증**을 쓴다(기간 역전 refine 포함).
+ */
+export const createRefundApplicationSchema = refundCalcObject
+  .extend({
+    /** 자동 채움에 쓴 내 계약. 수동 입력이면 없다 */
+    leaseId: idSchema.nullish(),
+  })
+  .refine(periodOrder.check, { message: periodOrder.message, path: [...periodOrder.path] });
+
+export type CreateRefundApplicationInput = z.infer<typeof createRefundApplicationSchema>;
+
+/**
+ * 수정 — 생성과 같은 필드다(부분 수정을 받지 않는다).
+ *
+ * 금액은 네 값이 **한 벌로** 맞물려 계산되므로, 월세만 바꾸고 기간을 그대로 두는 식의
+ * 부분 수정을 허용하면 서버가 절반짜리 입력으로 재계산하게 된다. 화면도 폼 전체를 들고 있다.
+ */
+export const updateRefundApplicationSchema = createRefundApplicationSchema;
+export type UpdateRefundApplicationInput = z.infer<typeof updateRefundApplicationSchema>;
+
+/** 목록 쿼리 — `scope=mine`(기본) 은 내 신청, `scope=review` 는 어드민 심사 큐 */
+export const refundListQuerySchema = z.object({
+  scope: z.enum(["mine", "review"]).optional(),
+  /** 심사 큐 상태 필터. 쉼표로 여러 개 — 없으면 "손이 필요한" 상태들(SUBMITTED·REVIEWING·NEED_MORE_DOCS) */
+  status: z.string().optional(),
+});
+export type RefundListQuery = z.infer<typeof refundListQuerySchema>;
+
+/** 서류 업로드 폼 필드(파일 제외) — `multipart/form-data` 라 값은 문자열로 온다 */
+export const uploadDocumentFieldsSchema = z.object({
+  applicationId: idSchema,
+  slot: z.enum(["LEASE_CONTRACT", "RESIDENT_REGISTRATION", "PAYMENT_PROOF"]),
+});
+export type UploadDocumentFields = z.infer<typeof uploadDocumentFieldsSchema>;
+
+/**
+ * 어드민 심사 액션.
+ *
+ * 목표 상태를 클라이언트가 고르지 않는다 — **액션 이름만** 받고 어디로 갈지는
+ * 서버의 상태 전이표(`features/refund/status.ts`)가 정한다. 코멘트 필수 여부도 마찬가지다.
+ */
+export const refundReviewSchema = z.object({
+  action: z.enum(["START", "NEED_MORE_DOCS", "APPROVE", "REJECT", "COMPLETE"]),
+  note: z.string().trim().max(1_000, "심사 코멘트는 1,000자까지 입력할 수 있습니다.").optional(),
+});
+export type RefundReviewInput = z.infer<typeof refundReviewSchema>;
