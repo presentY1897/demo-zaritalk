@@ -94,7 +94,12 @@ export type KnownTrackEventName =
   | "community_post_view"
   | "community_like_toggle"
   | "community_comment_create"
-  | "community_report_submit";
+  | "community_report_submit"
+  | "listing_create_complete"
+  | "listing_update_complete"
+  | "listing_status_change"
+  | "workplace_create_complete"
+  | "workplace_delete_complete";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

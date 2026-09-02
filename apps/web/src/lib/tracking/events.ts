@@ -135,6 +135,16 @@ export const TRACK_EVENTS = {
   COMMUNITY_COMMENT_CREATE: "community_comment_create",
   /** 신고 접수 성공 — props: `{ targetType, targetId, duplicated }` (T4.2) */
   COMMUNITY_REPORT_SUBMIT: "community_report_submit",
+  /** 매물 등록 성공 — props: `{ unitId, listingId, dealType, role }` (T3.1) */
+  LISTING_CREATE_COMPLETE: "listing_create_complete",
+  /** 매물 수정 성공(상태 변경 제외) — props: `{ listingId, dealType }` (T3.1) */
+  LISTING_UPDATE_COMPLETE: "listing_update_complete",
+  /** 매물 상태 변경 성공 — props: `{ listingId, from, to }` (T3.1) */
+  LISTING_STATUS_CHANGE: "listing_status_change",
+  /** 근무지 등록 성공 — props: `{ workplaceId, total }` (T3.4) */
+  WORKPLACE_CREATE_COMPLETE: "workplace_create_complete",
+  /** 근무지 삭제 성공 — props: `{ workplaceId, total }` (T3.4) */
+  WORKPLACE_DELETE_COMPLETE: "workplace_delete_complete",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;

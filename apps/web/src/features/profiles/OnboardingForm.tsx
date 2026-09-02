@@ -7,23 +7,22 @@
  * - `SIGNUP`: OTP 로 받은 가입 티켓으로 User 생성까지 (`POST /api/profiles` 가 세션까지 발급)
  * - `ADD_PROFILE`: 이미 로그인한 계정에 다른 유형 프로필 추가
  *
- * 좌표는 지금 **수동 입력 + 지역 프리셋**이다 — 카카오맵 키가 없어 지오코딩을 못 한다.
- * T3.x 에서 주소 검색(카카오 로컬 API)으로 교체하면 위경도 입력칸은 사라진다.
+ * 중개인·마스터의 **활동지역은 T3.1 에서 주소 검색으로 교체**했다. 원래는 주소 문자열 +
+ * 위경도 수동 입력 + 지역 프리셋(`AREA_PRESETS`)이었지만, 카카오 키를 받은 뒤 공용
+ * 주소 검색(`features/address/AddressSearchField`)으로 갈아 끼웠다 —
+ * 위경도 입력칸과 프리셋은 사라졌고 좌표는 검색 결과에서만 들어온다.
  */
 import { Badge, Button, Input, useTrack } from "@zari/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { css, cx } from "styled-system/css";
+import { AddressSearchField } from "@/features/address/AddressSearchField";
+import type { AddressSelection } from "@/features/address/types";
 import { ApiError } from "@/features/auth/api";
 import { useCreateProfile } from "@/features/auth/hooks";
 import { formatPhone } from "@/lib/phone";
 import { TRACK_EVENTS } from "@/lib/tracking/events";
-import {
-  AREA_PRESETS,
-  MASTER_CATEGORY_OPTIONS,
-  PROFILE_TYPE_OPTIONS,
-  RADIUS_OPTIONS,
-} from "./constants";
+import { MASTER_CATEGORY_OPTIONS, PROFILE_TYPE_OPTIONS, RADIUS_OPTIONS } from "./constants";
 import type { CreateProfileInput, MasterCategoryValue, ProfileTypeValue } from "./schema";
 
 export type OnboardingMode = "SIGNUP" | "ADD_PROFILE";
@@ -87,7 +86,6 @@ const chipSelectedStyle = css({
   color: "text",
   fontWeight: "600",
 });
-const twoColStyle = css({ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2" });
 const noteStyle = css({
   bg: "info.subtle",
   border: "1px solid",
@@ -128,10 +126,8 @@ export function OnboardingForm({
   const [name, setName] = useState(defaultName);
   const [type, setType] = useState<ProfileTypeValue | null>(null);
 
-  // 중개인·마스터 공통 활동지역
-  const [address, setAddress] = useState("");
-  const [lat, setLat] = useState("");
-  const [lng, setLng] = useState("");
+  // 중개인·마스터 공통 활동지역 — 좌표는 주소 검색 결과에서만 들어온다(T3.1)
+  const [area, setArea] = useState<AddressSelection | null>(null);
   const [radiusKm, setRadiusKm] = useState<number>(3);
   // 중개인
   const [officeName, setOfficeName] = useState("");
@@ -141,7 +137,7 @@ export function OnboardingForm({
   const [categories, setCategories] = useState<MasterCategoryValue[]>([]);
 
   const needsArea = type === "REALTOR" || type === "MASTER";
-  const coordsFilled = lat.trim() !== "" && lng.trim() !== "" && address.trim() !== "";
+  const coordsFilled = area !== null;
   const detailReady =
     type === "REALTOR"
       ? officeName.trim() !== "" && coordsFilled
@@ -149,12 +145,6 @@ export function OnboardingForm({
         ? companyName.trim() !== "" && categories.length > 0 && coordsFilled
         : true;
   const canSubmit = name.trim().length >= 2 && type !== null && detailReady;
-
-  function applyPreset(preset: (typeof AREA_PRESETS)[number]) {
-    setAddress(preset.address);
-    setLat(String(preset.lat));
-    setLng(String(preset.lng));
-  }
 
   function toggleCategory(value: MasterCategoryValue) {
     setCategories((prev) =>
@@ -165,30 +155,32 @@ export function OnboardingForm({
   function buildInput(): CreateProfileInput | null {
     if (!type) return null;
     const base = { name: name.trim(), ...(ticket ? { signupTicket: ticket } : {}) };
+    // 활동지역은 주소 검색 결과 그대로 — 도로명이 있으면 도로명을 저장한다(사람이 더 잘 알아본다)
+    const areaFields = area
+      ? { address: (area.roadAddress ?? area.address).slice(0, 120), lat: area.lat, lng: area.lng }
+      : null;
     if (type === "REALTOR") {
+      if (!areaFields) return null;
       return {
         ...base,
         type,
         realtor: {
           officeName: officeName.trim(),
           ...(licenseNo.trim() ? { licenseNo: licenseNo.trim() } : {}),
-          address: address.trim(),
-          lat: Number(lat),
-          lng: Number(lng),
+          ...areaFields,
           radiusKm,
         },
       };
     }
     if (type === "MASTER") {
+      if (!areaFields) return null;
       return {
         ...base,
         type,
         master: {
           companyName: companyName.trim(),
           categories,
-          address: address.trim(),
-          lat: Number(lat),
-          lng: Number(lng),
+          ...areaFields,
           radiusKm,
         },
       };
@@ -330,46 +322,17 @@ export function OnboardingForm({
         <section className={sectionStyle}>
           <h2 className={sectionTitleStyle}>활동지역</h2>
           <p className={noteStyle}>
-            지도 연동(카카오맵) 전이라 좌표를 직접 받습니다. 아래 지역을 누르면 주소·좌표가 채워집니다.
+            주소를 검색해 고르면 좌표가 자동으로 채워집니다. 이 좌표와 아래 반경으로 중개 요청·작업
+            의뢰가 매칭됩니다.
           </p>
-          <div className={chipRowStyle}>
-            {AREA_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                className={cx(chipStyle, address === preset.address && chipSelectedStyle)}
-                onClick={() => applyPreset(preset)}
-                data-testid={`area-preset-${preset.label}`}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-          <Input
-            label="주소"
+          <AddressSearchField
+            label="사무소·업체 주소"
             required
-            placeholder="서울 성동구 왕십리로 300"
-            value={address}
-            onChange={(event) => setAddress(event.target.value)}
+            value={area}
+            onChange={setArea}
+            placeholder="도로명·지번·건물명 (예: 왕십리로 300)"
+            testId="area-address"
           />
-          <div className={twoColStyle}>
-            <Input
-              label="위도"
-              required
-              inputMode="decimal"
-              placeholder="37.56133"
-              value={lat}
-              onChange={(event) => setLat(event.target.value)}
-            />
-            <Input
-              label="경도"
-              required
-              inputMode="decimal"
-              placeholder="127.03782"
-              value={lng}
-              onChange={(event) => setLng(event.target.value)}
-            />
-          </div>
           <fieldset>
             <legend className={css({ textStyle: "label", color: "text", mb: "1.5" })}>
               활동반경
