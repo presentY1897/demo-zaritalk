@@ -113,6 +113,12 @@ export const TRACK_EVENTS = {
   MASTER_ORDER_VIEW: "master_order_view",
   /** 데모용 플랜 전환 성공 — props: `{ from, to }` (T5.2) */
   MASTER_PLAN_CHANGE: "master_plan_change",
+  /** 마스터 견적 제안 성공 — props: `{ workOrderId, quoteId, amount, source }` (T5.3) */
+  QUOTE_SUBMIT_COMPLETE: "quote_submit_complete",
+  /** 임대인 견적 수락 성공 — props: `{ workOrderId, quoteId, amount, source, rejectedCount }` (T5.3) */
+  QUOTE_ACCEPT_COMPLETE: "quote_accept_complete",
+  /** 마스터 「내 견적」 목록 노출 — props: `{ total, proposed, accepted, rejected, pushed, pulled }` (T5.3) */
+  MASTER_QUOTE_LIST_VIEW: "master_quote_list_view",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;

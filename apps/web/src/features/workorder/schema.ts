@@ -65,3 +65,24 @@ export const updateMasterPlanSchema = z.object({
   plan: z.enum(["FREE", "PRO"]),
 });
 export type UpdateMasterPlanInput = z.infer<typeof updateMasterPlanSchema>;
+
+/**
+ * `POST /api/work-orders/[id]/quotes` 본문 — 마스터의 견적 제안 (T5.3).
+ *
+ * 대상 의뢰는 경로가 정하고, 제안자는 세션이 정한다. 마스터가 적을 것은 **금액과 메시지**뿐이다.
+ * 금액은 원 단위 정수다(`WorkOrderQuote.amount Int`) — 소수·문자열을 보내면 400.
+ */
+export const createQuoteSchema = z.object({
+  amount: z
+    .number("견적 금액을 숫자로 입력해 주세요.")
+    .int("견적 금액은 원 단위 정수로 입력해 주세요.")
+    .min(1_000, "견적 금액은 1,000원 이상이어야 합니다.")
+    // Int 상한(약 21억)보다 훨씬 낮게 잡는다 — 데모에서 다룰 작업 금액의 상식적 상한
+    .max(100_000_000, "견적 금액은 1억원 이하로 입력해 주세요."),
+  message: z
+    .string()
+    .trim()
+    .max(500, "제안 메시지는 500자 이하로 적어 주세요.")
+    .nullish(),
+});
+export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;

@@ -6,14 +6,17 @@
 import { ApiError } from "@/features/auth/api";
 import type {
   ConvertComplaintInput,
+  CreateQuoteInput,
   CreateWorkOrderInput,
   UpdateWorkOrderInput,
 } from "./schema";
 import type {
+  AcceptQuoteResult,
   ConvertComplaintResult,
+  CreateQuoteResult,
   CreateWorkOrderResult,
-  LandlordWorkOrderDto,
   ListWorkOrdersResult,
+  UpdateWorkOrderResult,
 } from "./types";
 
 export async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -47,14 +50,15 @@ export function createWorkOrder(input: CreateWorkOrderInput): Promise<CreateWork
   });
 }
 
+/** 완료·취소. 완료 응답에는 함께 닫힌 민원의 상태(`complaintStatus`)가 실려 온다(T5.3) */
 export function updateWorkOrder(
   workOrderId: string,
   input: UpdateWorkOrderInput,
-): Promise<LandlordWorkOrderDto> {
-  return requestJson<{ workOrder: LandlordWorkOrderDto }>(`/api/work-orders/${workOrderId}`, {
+): Promise<UpdateWorkOrderResult> {
+  return requestJson<UpdateWorkOrderResult>(`/api/work-orders/${workOrderId}`, {
     method: "PATCH",
     body: JSON.stringify(input),
-  }).then((body) => body.workOrder);
+  });
 }
 
 /** 민원 → 작업 의뢰 전환 (T2.6 스레드의 「작업 의뢰로 전환」 버튼) */
@@ -66,4 +70,20 @@ export function convertComplaintToWorkOrder(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+/** 마스터의 견적 제안 — 의뢰당 1회(두 번째는 409) (T5.3) */
+export function submitQuote(
+  workOrderId: string,
+  input: CreateQuoteInput,
+): Promise<CreateQuoteResult> {
+  return requestJson<CreateQuoteResult>(`/api/work-orders/${workOrderId}/quotes`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+/** 임대인의 견적 수락 — 나머지 자동 거절 + 의뢰 배정까지 한 트랜잭션이다 (T5.3) */
+export function acceptQuote(quoteId: string): Promise<AcceptQuoteResult> {
+  return requestJson<AcceptQuoteResult>(`/api/quotes/${quoteId}/accept`, { method: "POST" });
 }

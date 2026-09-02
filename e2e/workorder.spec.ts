@@ -109,12 +109,11 @@ test("E2E① 임대인 의뢰 등록 → PRO 추천 노출 → FREE 는 피드�
   await expect(proRecommended).toBeVisible();
   await expect(proRecommended).toHaveAttribute("data-recommended", "true");
 
-  // 상세도 열린다 (견적 제안은 T5.3 자리라 비활성)
+  // 상세도 열린다 (견적 제안 자리는 T5.3 이 열었다 — 여정 자체는 quote.spec.ts 가 본다)
   await proRecommended.click();
   await expect(page).toHaveURL(/\/master\/orders\//);
   await expect(page.getByTestId("master-order-recommended")).toBeVisible();
-  await expect(page.getByTestId("master-quote-slot")).toContainText("T5.3");
-  await expect(page.getByTestId("master-quote-cta")).toBeDisabled();
+  await expect(page.getByTestId("master-quote-cta")).toBeEnabled();
 
   // ── ③ FREE 마스터(한마스)는 추천 탭이 비어 있다 — 대신 업그레이드 안내
   await loginWithPhone(page, "01066666666");
@@ -185,7 +184,8 @@ test("E2E② 민원 → 작업 의뢰 전환 (재전환은 409)", async ({ page 
   await expect(page.getByTestId("workorder-complaint-link")).toContainText(COMPLAINT_TITLE);
   // 몇 명인지는 그때 PRO 인 마스터 수에 달렸다 — 여기서 볼 것은 "추천이 나갔다" 는 사실이다
   await expect(page.getByTestId("workorder-target-count")).toContainText("PRO 마스터");
-  await expect(page.getByTestId("workorder-quote-slot")).toContainText("T5.3");
+  // 갓 전환된 의뢰라 받은 견적이 없다(T5.3 이 연 자리 — 여정은 quote.spec.ts 가 본다)
+  await expect(page.getByTestId("workorder-quote-empty")).toBeVisible();
 
   // ── ④ DB — 민원 1건 : 의뢰 1건, 민원 상태는 IN_PROGRESS
   const rows = await queryTestDb<{ status: string; work_order_id: string }>(

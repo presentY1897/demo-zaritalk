@@ -16,6 +16,10 @@
  * 반경 판정은 `@/lib/geo/distance` 의 `rankByDistance` 하나로 한다. 원점이 **마스터 사무소**,
  * 후보가 **의뢰 건물**이고 반경은 전부 내 `radiusKm` 이다(push 매칭과 원점·후보가 뒤바뀐
  * 모양이지만 거리 판정식은 같다).
+ *
+ * **견적 조회는 여기 없다.** 내가 낸 견적(`listMasterQuotes`·`findMyQuote`)은 의뢰가 아니라
+ * 견적을 읽는 것이라 T5.3 `features/workorder/quotes.ts` 에 함께 뒀다 — 임대인 쪽 견적 카드와
+ * DTO 매핑·`source` 판정을 공유해야 두 화면이 어긋나지 않는다.
  */
 import { prisma, type MasterDetail, type Prisma } from "@zari/db";
 import { rankByDistance } from "@/lib/geo/distance";
