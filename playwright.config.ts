@@ -15,6 +15,14 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   fullyParallel: false,
   workers: 1,
+  /**
+   * 테스트 1건 예산. 기본값 30초는 **스펙 안의 의도적 대기보다 짧다** —
+   * 결제 스펙은 토스 위젯(외부 스크립트)을 최대 30초 기다리는데,
+   * 로그인·이동 시간까지 합치면 느린 CI 러너에서 예산을 넘겨 통째로 죽는다.
+   * (로컬은 위젯이 1~2초에 떠서 드러나지 않았다.)
+   */
+  timeout: process.env.CI ? 120_000 : 60_000,
+  expect: { timeout: 10_000 },
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "list" : "html",
