@@ -12,7 +12,10 @@
  * - `NEXT_PUBLIC_WEB_URL` — 호출할 web 앱 주소(로컬 기본값 http://localhost:3000)
  *
  * `"use server"` 파일은 async 함수만 export 할 수 있다 — 상수·타입은 `./shared` 에 있다.
+ *
+ * **T6.3 어드민 로그인**: 크론 트리거와 같은 이유로 첫 줄에서 어드민 세션을 확인한다.
  */
+import { requireAdminGate } from "../_shell/auth";
 import { resolveWebUrl, type DealSyncSummary, type TriggerDealSyncResult } from "./shared";
 
 export async function getWebUrl(): Promise<string> {
@@ -24,6 +27,10 @@ export async function triggerDealSync(input: {
   months: string[];
 }): Promise<TriggerDealSyncResult> {
   const url = `${resolveWebUrl(process.env.NEXT_PUBLIC_WEB_URL)}/api/deals/sync`;
+
+  const denied = await requireAdminGate();
+  if (denied) return { ...denied, url };
+
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {

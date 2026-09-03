@@ -8,15 +8,18 @@
  * 그래서 **어드민 서버가 대신 받아 온다** — 서버 액션과 같은 `x-admin-secret` 을 붙여 web 을
  * 호출하고, 받은 스트림을 그대로 흘려보낸다. 시크릿은 브라우저에 노출되지 않는다.
  *
- * ⚠️ 어드민 앱 **자체에는 아직 인증이 없다**(크론 트리거 화면도 같은 상태다). 즉 어드민 앱에
- * 접근할 수 있으면 이 경로로 서류를 볼 수 있다 — 어드민 로그인(T6.3)이 붙기 전까지는
- * 어드민 배포를 비공개로 두는 것이 전제다.
+ * **T6.3 이 이 구멍을 닫았다.** 라우트 핸들러는 레이아웃 게이트를 거치지 않으므로 여기서
+ * 직접 어드민 세션을 확인한다 — 로그인하지 않은 요청은 서류에 닿기 전에 401 이다.
  */
+import { requireAdminGate } from "../../_shell/auth";
 import { resolveWebUrl } from "../../cron/shared";
 
 const SECRET_HEADER = "x-admin-secret";
 
 export async function GET(request: Request): Promise<Response> {
+  const denied = await requireAdminGate();
+  if (denied) return new Response(denied.message, { status: denied.status });
+
   const url = new URL(request.url);
   const applicationId = url.searchParams.get("applicationId");
   const documentId = url.searchParams.get("documentId");
