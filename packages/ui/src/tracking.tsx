@@ -113,7 +113,12 @@ export type KnownTrackEventName =
   | "deals_apt_search"
   | "deals_trend_view"
   | "deals_alert_create"
-  | "deals_alert_delete";
+  | "deals_alert_delete"
+  | "brokerage_preview_view"
+  | "brokerage_request_complete"
+  | "brokerage_inbox_view"
+  | "brokerage_request_view"
+  | "brokerage_respond_complete";
 
 /**
  * 이벤트 이름 — `<domain>_<object>_<action>`.

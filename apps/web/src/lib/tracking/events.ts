@@ -176,6 +176,16 @@ export const TRACK_EVENTS = {
   DEALS_ALERT_CREATE: "deals_alert_create",
   /** 알림 구독 해제 성공 — props: `{ alertId }` (T4.4) */
   DEALS_ALERT_DELETE: "deals_alert_delete",
+  /** 중개 요청 발송 전 대상 미리보기 도착 — props: `{ unitId, count, blocked }` (T3.6) */
+  BROKERAGE_PREVIEW_VIEW: "brokerage_preview_view",
+  /** 중개 요청 발송 성공 — props: `{ requestId, unitId, dispatchedCount, targetCount, reused }` (T3.6) */
+  BROKERAGE_REQUEST_COMPLETE: "brokerage_request_complete",
+  /** 중개인 수신함 노출 — props: `{ total, pending, accepted }` (T3.7) */
+  BROKERAGE_INBOX_VIEW: "brokerage_inbox_view",
+  /** 중개 요청 상세 노출(= 열람) — props: `{ targetId, requestId, status, distanceKm }` (T3.7) */
+  BROKERAGE_REQUEST_VIEW: "brokerage_request_view",
+  /** 중개 요청 수락·거절 성공 — props: `{ targetId, requestId, status, matched }` (T3.7) */
+  BROKERAGE_RESPOND_COMPLETE: "brokerage_respond_complete",
 } as const satisfies Record<string, KnownTrackEventName>;
 
 export type TrackEventKey = keyof typeof TRACK_EVENTS;
