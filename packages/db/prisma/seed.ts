@@ -22,13 +22,16 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
   ChargeStatus,
+  DealType,
   LeaseStatus,
+  ListingStatus,
   MasterCategory,
   MasterPlan,
   MessageKind,
   PaymentMethod,
   PrismaClient,
   ProfileType,
+  RealDealType,
   WorkOrderStatus,
 } from "../src/generated/client";
 
@@ -420,6 +423,137 @@ async function main() {
     },
   });
 
+
+  // ---- 지도·실거래가 화면용 시드 ----
+  //
+  // 매물이 하나도 없으면 `/search` 가 빈 지도로 열리고, 실거래가가 없으면 `/deals` 첫 진입이
+  // 온디맨드 수집을 기다린다 — 데모 첫인상이 나빠진다.
+  //
+  // **김임대가 아니라 별도 임대인(정임대)에게 붙인다.** 김임대에게 건물을 더하면 임대인
+  // 대시보드(T1.9)의 "건물 1 · 호실 3" 집계와 그 테스트가 함께 깨진다. 지도·매물 화면은
+  // 공개라 소유자와 무관하게 전부 보이므로 목적에는 영향이 없다.
+  //
+  // 좌표는 전부 **위도 37.56 초과**다 — `e2e/search.spec.ts` 가 핀 개수를 셀 때 쓰는 영역
+  // (37.49~37.55 / 37.53~37.56)에 걸리지 않게 일부러 그 밖에 둔다.
+  const secondLandlord = await prisma.user.create({
+    data: {
+      phone: "01077777777",
+      name: "정임대",
+      profiles: { create: { type: ProfileType.LANDLORD } },
+    },
+    include: { profiles: true },
+  });
+  const secondLandlordProfile = secondLandlord.profiles[0];
+
+  const showcase = [
+    {
+      name: "왕십리센트럴",
+      address: "서울 성동구 왕십리로 300",
+      lat: 37.5615,
+      lng: 127.0378,
+      units: [
+        { label: "302호", floor: 3, areaM2: 44.2, rooms: 2, deal: DealType.WOLSE, deposit: 20_000_000, rent: 900_000, desc: "왕십리역 도보 5분, 2룸 풀옵션. 관리비 별도." },
+        { label: "401호", floor: 4, areaM2: 29.8, rooms: 1, deal: DealType.WOLSE, deposit: 10_000_000, rent: 650_000, desc: "역세권 1.5룸, 채광 좋은 남향." },
+      ],
+    },
+    {
+      name: "행당역푸르지오",
+      address: "서울 성동구 행당로 17",
+      lat: 37.5637,
+      lng: 127.0295,
+      units: [
+        { label: "1203호", floor: 12, areaM2: 59.9, rooms: 3, deal: DealType.JEONSE, deposit: 380_000_000, rent: 0, desc: "고층 전세, 한강 조망. 즉시 입주 가능." },
+      ],
+    },
+    {
+      name: "마장한신",
+      address: "서울 성동구 마장로 210",
+      lat: 37.5665,
+      lng: 127.0431,
+      units: [
+        { label: "505호", floor: 5, areaM2: 36.4, rooms: 2, deal: DealType.WOLSE, deposit: 5_000_000, rent: 550_000, desc: "보증금 낮은 월세, 신혼·1인 가구용." },
+      ],
+    },
+  ];
+
+  let showcaseListings = 0;
+  for (const item of showcase) {
+    const created = await prisma.building.create({
+      data: {
+        ownerProfileId: secondLandlordProfile.id,
+        name: item.name,
+        address: item.address,
+        roadAddress: item.address,
+        lat: item.lat,
+        lng: item.lng,
+        units: {
+          create: item.units.map((u) => ({
+            label: u.label,
+            floor: u.floor,
+            areaM2: u.areaM2,
+            rooms: u.rooms,
+          })),
+        },
+      },
+      include: { units: true },
+    });
+    for (const u of item.units) {
+      const unit = created.units.find((row) => row.label === u.label);
+      if (!unit) continue;
+      await prisma.listing.create({
+        data: {
+          unitId: unit.id,
+          listedByProfileId: secondLandlordProfile.id,
+          dealType: u.deal,
+          deposit: u.deposit,
+          monthlyRent: u.rent,
+          description: u.desc,
+          availableFrom: d("2026-10-01"),
+          status: ListingStatus.OPEN,
+        },
+      });
+      showcaseListings += 1;
+    }
+  }
+
+  // 실거래가 — 성동구(11200) 최근 3개월. 금액 단위는 **만원**(국토부 원본 단위 그대로).
+  const dealSamples: {
+    dealType: RealDealType;
+    aptName: string;
+    areaM2: number;
+    floor: number;
+    dealDate: string;
+    price?: number;
+    deposit?: number;
+    monthlyRent?: number;
+    builtYear: number;
+  }[] = [
+    { dealType: RealDealType.SALE, aptName: "행당한진타운", areaM2: 84.9, floor: 12, dealDate: "2026-07-14", price: 128_000, builtYear: 2000 },
+    { dealType: RealDealType.SALE, aptName: "행당한진타운", areaM2: 59.8, floor: 7, dealDate: "2026-08-03", price: 98_500, builtYear: 2000 },
+    { dealType: RealDealType.SALE, aptName: "서울숲리버뷰자이", areaM2: 84.9, floor: 21, dealDate: "2026-08-21", price: 205_000, builtYear: 2018 },
+    { dealType: RealDealType.JEONSE, aptName: "행당한진타운", areaM2: 84.9, floor: 5, dealDate: "2026-07-09", deposit: 62_000, monthlyRent: 0, builtYear: 2000 },
+    { dealType: RealDealType.JEONSE, aptName: "왕십리센트라스", areaM2: 59.9, floor: 15, dealDate: "2026-08-11", deposit: 58_000, monthlyRent: 0, builtYear: 2016 },
+    { dealType: RealDealType.WOLSE, aptName: "왕십리센트라스", areaM2: 39.6, floor: 3, dealDate: "2026-08-05", deposit: 10_000, monthlyRent: 95, builtYear: 2016 },
+    { dealType: RealDealType.WOLSE, aptName: "서울숲리버뷰자이", areaM2: 59.9, floor: 9, dealDate: "2026-09-01", deposit: 20_000, monthlyRent: 130, builtYear: 2018 },
+  ];
+  for (const row of dealSamples) {
+    await prisma.realTransaction.create({
+      data: {
+        lawdCd: "11200",
+        dealType: row.dealType,
+        aptName: row.aptName,
+        areaM2: row.areaM2,
+        floor: row.floor,
+        dealDate: d(row.dealDate),
+        price: row.price ?? null,
+        deposit: row.deposit ?? null,
+        monthlyRent: row.monthlyRent ?? null,
+        builtYear: row.builtYear,
+      },
+    });
+  }
+  void showcaseListings;
+
   console.log("seed 완료:", {
     users: await prisma.user.count(),
     profiles: await prisma.profile.count(),
@@ -430,6 +564,8 @@ async function main() {
     messages: await prisma.messageLog.count(),
     workOrders: await prisma.workOrder.count(),
     workOrderTargets: await prisma.workOrderTarget.count(),
+    listings: await prisma.listing.count(),
+    realTransactions: await prisma.realTransaction.count(),
   });
   void realtor;
 }

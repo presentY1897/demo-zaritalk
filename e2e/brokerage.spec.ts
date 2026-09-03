@@ -135,11 +135,16 @@ test("E2E① 임대인 중개 요청 → 중개인 수신함·열람 → 수락 
   await page.getByTestId("listing-submit").click();
   await expect(page.getByTestId("listing-status-badge")).toHaveText("공개 중");
 
-  // 등록자가 중개인으로 남는다
+  // 등록자가 중개인으로 남는다.
+  // 시드에도 매물이 있으므로(지도 화면용) **이 여정이 만든 101호 매물로 좁혀서** 확인한다 —
+  // `Listing` 전체를 세면 시드가 늘 때마다 깨진다.
   const listedBy = await queryTestDb<{ name: string; type: string }>(
     `SELECT u.name, p.type FROM "Listing" l
+       JOIN "Unit" un ON un.id = l."unitId"
+       JOIN "Building" b ON b.id = un."buildingId"
        JOIN "Profile" p ON p.id = l."listedByProfileId"
-       JOIN "User" u ON u.id = p."userId"`,
+       JOIN "User" u ON u.id = p."userId"
+      WHERE un.label = '101호' AND b.name = '행당해피빌'`,
   );
   expect(listedBy).toHaveLength(1);
   expect(listedBy[0]).toMatchObject({ name: "이중개", type: "REALTOR" });
