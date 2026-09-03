@@ -1,16 +1,17 @@
 /**
  * 공개 고지서 하단 가입 CTA — **[D2](../../../../../docs/DECISIONS.md#-d2-ab-실험-소재-1개-실운영) 의 A/B 실험 소재**(`notice_cta`).
  *
- * 지금(T1.8)은 **배정 로직 없이 문구·배치 2안만** 정의한다. 실운영 A/B 는 T6.1 이 붙인다.
+ * **문구·배치 2안의 원본은 여기 한 곳**이다. 배정 로직은 여기 없다 —
+ * anonId 해시 배정은 T6.1 `features/ab/` 가 갖고, 화면은 정해진 `variant` 를 받아 그리기만 한다.
  *
- * ## T6.1 이 갈아 끼울 자리 (여기 한 곳뿐)
+ * ## T6.1 이 갈아 끼웠다 (여기 한 곳뿐)
  *
  * ```ts
- * // 지금 — app/(app)/notice/[token]/page.tsx
+ * // T1.8 — 쿼리·기본값으로 정했다
  * const variant = resolveNoticeCtaVariant(searchParams.variant);
  *
- * // T6.1 — anonId 로 배정(AbAssignment)해서 넘긴다. 화면·이벤트는 한 줄도 바뀌지 않는다
- * const variant = await assignVariant(anonId, NOTICE_CTA_EXPERIMENT);   // "A" | "B"
+ * // T6.1 — anonId 해시 배정(AbAssignment)으로 갈아 끼웠다. 화면·이벤트는 한 줄도 바뀌지 않았다
+ * const assigned = await assignVariant(anonId, NOTICE_CTA_EXPERIMENT);   // "A" | "B"
  * ```
  *
  * `NoticeCta` 는 `variant` prop 만 보고 문구·배치를 바꾸므로, 배정이 어디서 오든 상관없다.
@@ -68,6 +69,20 @@ export function resolveNoticeCtaVariant(value?: string | null): NoticeCtaVariant
   return (NOTICE_CTA_VARIANTS as readonly string[]).includes(value ?? "")
     ? (value as NoticeCtaVariant)
     : DEFAULT_NOTICE_CTA_VARIANT;
+}
+
+/**
+ * `?variant=` **미리보기** — 데모 시연·E2E 가 반대 안을 눈으로 확인하기 위한 강제 경로 (T6.1).
+ *
+ * 배정(`AbAssignment`)을 덮어쓰지 않는다. **화면만** 바뀌고 그 방문자의 배정은 해시가 정한 값
+ * 그대로다. 그래서 이 경로로 만들어진 노출·클릭 이벤트는 `props.variant` 가 배정된 변형과
+ * 어긋나고, 어드민 퍼널(T6.2)은 **어긋난 이벤트를 세지 않는다** — 강제 경로가 실험을 오염시키지
+ * 못한다. 모르는 값이면 `null`(= 미리보기 아님)이라 배정이 그대로 쓰인다.
+ */
+export function previewNoticeCtaVariant(value?: string | null): NoticeCtaVariant | null {
+  return (NOTICE_CTA_VARIANTS as readonly string[]).includes(value ?? "")
+    ? (value as NoticeCtaVariant)
+    : null;
 }
 
 export function noticeCtaContent(variant: NoticeCtaVariant): NoticeCtaContent {

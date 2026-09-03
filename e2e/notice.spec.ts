@@ -143,13 +143,23 @@ test("E2E① 그로스 여정 — 발송 → 비로그인 열람 → CTA → 가
     .poll(() => funnelEvents(anonId), { timeout: 15_000 })
     .toEqual(["notice_view", "notice_cta_click", "signup_start", "signup_complete"]);
 
-  // CTA 클릭 이벤트에는 A/B 변형이 실려 있다(T6.1 이 이 값으로 실험을 읽는다)
+  // CTA 클릭 이벤트에는 A/B 변형이 실려 있다(T6.2 퍼널이 이 값으로 실험을 읽는다).
+  // **T6.1 부터 변형은 anonId 해시로 배정된다** — 이 컨텍스트의 anonId 는 매 실행 새로 발급되므로
+  // 값을 A 로 못 박을 수 없다. 대신 "배정된 변형과 이벤트에 실린 변형이 같은가" 를 본다.
   const ctaRows = await queryTestDb<{ props: { variant: string; experiment: string } }>(
     `SELECT props FROM "TrackingEvent" WHERE "anonId" = $1 AND name = 'notice_cta_click'`,
     [anonId],
   );
   expect(ctaRows[0]?.props.experiment).toBe("notice_cta");
-  expect(ctaRows[0]?.props.variant).toBe("A");
+  expect(["A", "B"]).toContain(ctaRows[0]?.props.variant);
+
+  const assignment = await queryTestDb<{ variant: string; userId: string | null }>(
+    `SELECT variant, "userId" FROM "AbAssignment"
+      WHERE "anonId" = $1 AND "experimentKey" = 'notice_cta'`,
+    [anonId],
+  );
+  expect(assignment, "고지서를 열면 배정이 한 줄 생긴다").toHaveLength(1);
+  expect(ctaRows[0]?.props.variant).toBe(assignment[0]?.variant);
 
   // ── ⑧ 수락까지 (T1.3) — 그로스 여정의 마지막 구간.
   //    D2 퍼널 검증(⑦)을 먼저 끝내고 이어 붙인다. 수락은 같은 anonId 로 T1.3 이벤트를

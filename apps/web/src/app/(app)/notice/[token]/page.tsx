@@ -1,16 +1,24 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { Badge } from "@zari/ui";
 import { css } from "styled-system/css";
 import { CHARGE_STATUS_META, messageKindLabel } from "@/features/notice/constants";
-import { resolveNoticeCtaVariant, noticeCtaContent } from "@/features/notice/cta";
+import { assignVariant } from "@/features/ab/assign";
+import {
+  NOTICE_CTA_EXPERIMENT,
+  noticeCtaContent,
+  previewNoticeCtaVariant,
+  resolveNoticeCtaVariant,
+} from "@/features/notice/cta";
 import { formatDateKey, formatDueBadge, formatKstDateTime } from "@/features/notice/format";
 import { NoticeCta } from "@/features/notice/NoticeCta";
 import { NoticeOpenTracker } from "@/features/notice/NoticeOpenTracker";
 import { loadPublicNotice } from "@/features/notice/queries";
 import { formatWon } from "@/features/notice/template";
 import { isNoticeTokenShape } from "@/features/notice/token";
+import { ANON_ID_COOKIE, isAnonId } from "@/lib/tracking/anon-id";
 
 /**
  * `/notice/[token]` — **비로그인 공개 고지서** (T1.8).
@@ -186,9 +194,17 @@ export default async function PublicNoticePage({ params, searchParams }: PagePro
   if (!notice) notFound();
 
   const query = await searchParams;
-  // 지금은 쿼리(데모·E2E)와 기본값으로 정한다. **T6.1 이 이 한 줄을 anonId 배정으로 바꾼다.**
   const variantParam = Array.isArray(query.variant) ? query.variant[0] : query.variant;
-  const variant = resolveNoticeCtaVariant(variantParam);
+
+  // **T6.1 이 갈아 끼운 한 줄** — anonId 해시로 배정한다(T1.8 이 남겨 둔 자리 그대로).
+  // 쿠키는 proxy 가 첫 요청에서 심고 같은 요청의 헤더에도 넣어 주므로 여기서 바로 읽힌다.
+  const anonId = (await cookies()).get(ANON_ID_COOKIE)?.value;
+  const assigned = isAnonId(anonId) ? await assignVariant(anonId, NOTICE_CTA_EXPERIMENT) : null;
+
+  // `?variant=` 는 **미리보기**다 — 배정을 덮어쓰지 않고 화면만 바꾼다(`cta.ts` 주석 참고).
+  // 이 화면에서 나가는 노출·클릭 이벤트의 `props.variant` 는 화면에 그린 값이라,
+  // 배정과 어긋나면 어드민 퍼널(T6.2)이 그 이벤트를 세지 않는다 = 실험이 오염되지 않는다.
+  const variant = previewNoticeCtaVariant(variantParam) ?? resolveNoticeCtaVariant(assigned?.variant);
   const cta = noticeCtaContent(variant);
 
   const charge = notice.charge;
