@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { absoluteUrl, INDEXABLE, SITE_NAME } from "@/lib/seo";
 import { COMMUNITY_REGIONS, DEFAULT_REGION_CODE, regionLabel, resolveRegion } from "@/features/community/regions";
 import { DealsView } from "@/features/deals/DealsView";
 import { DEFAULT_DEAL_PAGE_SIZE } from "@/features/deals/cursor";
@@ -30,8 +31,18 @@ import { getCurrentUser } from "@/lib/auth/session";
  * `searchParams` 는 Next 16 규약대로 Promise 다.
  */
 export const metadata: Metadata = {
-  title: "실거래가 — 자리 데모",
+  title: "실거래가",
   description: "국토교통부 아파트 실거래가를 시군구·거래 유형별로 보고, 단지별 추이를 확인합니다.",
+  alternates: { canonical: "/deals" },
+  // 공개 데이터라 개인정보가 없고 유입 경로다 — `/search`·계산기와 같은 편(T6.4)
+  robots: INDEXABLE,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    url: absoluteUrl("/deals"),
+    title: "아파트 실거래가 — 시군구·유형별 조회",
+    description: "국토교통부 실거래가를 지역·거래 유형으로 보고 단지별 추이를 확인합니다.",
+  },
 };
 
 export const dynamic = "force-dynamic";

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { siteUrlObject } from "@/lib/seo";
 import { defaultRefundPeriod } from "@/features/refund/calc";
 import { REFUND_CALCULATOR_PATH } from "@/features/refund/cta";
 import { RefundCalculatorView } from "@/features/refund/RefundCalculatorView";
@@ -40,7 +41,8 @@ import { formatDateKey, kstToday } from "@/lib/rent";
  */
 
 const SITE_NAME = "자리 데모";
-const metadataBase = new URL(process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000");
+// 사이트 URL 도출은 `lib/seo` 한 곳에서만 한다(T6.4)
+const metadataBase = siteUrlObject();
 
 const TITLE = "월세 환급 계산기 — 최근 5년 세액공제 소급 조회";
 const DESCRIPTION =

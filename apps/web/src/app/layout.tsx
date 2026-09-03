@@ -1,12 +1,18 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { css } from "styled-system/css";
+import { SITE_DESCRIPTION, SITE_NAME, siteUrlObject } from "@/lib/seo";
 import { Providers } from "./providers";
 import "./globals.css";
 
+/**
+ * `metadataBase` 를 여기 한 번만 둔다 — 하위 화면의 상대 경로 canonical·OG 가 전부 이걸 기준
+ * 삼는다. 화면마다 각자 구하면 프리뷰 배포에서 도메인이 어긋난다(T6.4).
+ */
 export const metadata: Metadata = {
-  title: "자리 데모 — 임대관리",
-  description: "임대인·세입자·중개인·마스터를 잇는 임대관리 데모 서비스",
+  metadataBase: siteUrlObject(),
+  title: { default: `${SITE_NAME} — 임대관리`, template: `%s — ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
 };
 
 export const viewport: Viewport = {

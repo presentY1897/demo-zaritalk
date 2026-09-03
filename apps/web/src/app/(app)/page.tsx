@@ -1,10 +1,12 @@
 import { Badge, buttonRecipe, Card } from "@zari/ui";
 import type { BadgeTone } from "@zari/ui";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { css } from "styled-system/css";
 import { homeHrefFor } from "@/features/shell/tabs";
 import { currentUser, getActiveProfile } from "@/features/shell/session";
+import { absoluteUrl, INDEXABLE, SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
 
 /**
  * `/` — 진입점 (T0.5).
@@ -87,6 +89,25 @@ const noticeStyle = css({
   textStyle: "caption",
   color: "text",
 });
+
+
+/**
+ * 랜딩 메타 (T6.4). 로그인 사용자는 홈으로 리다이렉트되므로 이 메타는 **비로그인 방문자**가
+ * 보는 것이고, 검색 결과에 이 서비스가 무엇인지 드러나는 유일한 화면이다.
+ */
+export const metadata: Metadata = {
+  title: { absolute: `${SITE_NAME} — 임대인·세입자를 잇는 임대관리` },
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+  robots: INDEXABLE,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    url: absoluteUrl("/"),
+    title: `${SITE_NAME} — 임대인·세입자를 잇는 임대관리`,
+    description: SITE_DESCRIPTION,
+  },
+};
 
 export default async function HomePage() {
   const user = await currentUser();

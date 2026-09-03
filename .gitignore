@@ -28,3 +28,6 @@ playwright-report/
 
 # vercel
 .vercel/
+
+# 어드민 패스코드(로컬 보관)
+.admin-password.local

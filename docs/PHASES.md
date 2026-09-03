@@ -80,13 +80,15 @@
 | [T3.2](./tasks/t3.2-map-search.md) | 지도 탐색 | ✅ |
 | [T3.3](./tasks/t3.3-listing-detail.md) | 매물 상세 + SEO | ✅ |
 | [T3.4](./tasks/t3.4-workplace.md) | 근무지 관리 | ✅ |
-| [T3.5](./tasks/t3.5-commute.md) | 통근시간 조회 | ⬜ |
+| [T3.5](./tasks/t3.5-commute.md) | 통근시간 조회 | ✅ |
 | [T3.6](./tasks/t3.6-brokerage-request.md) | 중개 요청·반경 매칭 | ✅ |
 | [T3.7](./tasks/t3.7-realtor-inbox.md) | 중개인 수신함·수락 | ✅ |
 
 **Phase 완료 조건**
-- [ ] 전 task ✅ (반경 매칭·통근 캐시 단위 테스트 포함)
-- [ ] E2E: 매물 탐색 / 중개 매칭 여정 green (통근은 키 있으면 포함)
+- [x] 전 task ✅ (반경 매칭·통근 캐시 단위 테스트 포함)
+- [x] E2E: 매물 탐색 / 중개 매칭 / 통근 여정 green
+
+**Phase 3 완료 (2026-09-03).**
 
 ## Phase 4 — 커뮤니티·실거래가
 
@@ -128,13 +130,15 @@
 
 | task | 내용 | 상태 |
 |---|---|---|
-| [T6.1](./tasks/t6.1-ab-test.md) | A/B 실험 실운영 | ⬜ |
-| [T6.2](./tasks/t6.2-metrics.md) | 어드민 지표 대시보드·퍼널 | ⬜ |
-| [T6.3](./tasks/t6.3-admin-views.md) | 어드민 조회 화면 일괄 | ⬜ |
-| [T6.4](./tasks/t6.4-seo.md) | SEO 마무리 | ⬜ |
-| [T6.5](./tasks/t6.5-docs.md) | 문서·마무리 | ⬜ |
+| [T6.1](./tasks/t6.1-ab-test.md) | A/B 실험 실운영 | ✅ |
+| [T6.2](./tasks/t6.2-metrics.md) | 어드민 지표 대시보드·퍼널 | ✅ |
+| [T6.3](./tasks/t6.3-admin-views.md) | 어드민 조회 화면 일괄 | ✅ |
+| [T6.4](./tasks/t6.4-seo.md) | SEO 마무리 | ✅ |
+| [T6.5](./tasks/t6.5-docs.md) | 문서·마무리 | ✅ |
 
 **Phase 완료 조건**
-- [ ] 전 task ✅
-- [ ] 전체 E2E green + 라이브 URL 최종 점검
-- [ ] 데모 시나리오 대본대로 전 역할 시연 가능
+- [x] 전 task ✅
+- [x] 전체 E2E green + 라이브 URL 최종 점검
+- [x] 데모 시나리오 대본대로 전 역할 시연 가능 (README·[T6.5](./tasks/t6.5-docs.md))
+
+**Phase 6 완료 (2026-09-03). 전 42 task 완료.**

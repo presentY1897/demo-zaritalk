@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { siteUrlObject, siteUrl as resolveSiteUrl } from "@/lib/seo";
 import { ProfileType } from "@zari/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -59,8 +60,9 @@ import { listWorkplaces } from "@/features/workplace/queries";
  */
 
 const SITE_NAME = "자리 데모";
-const siteUrl = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000";
-const metadataBase = new URL(siteUrl);
+// 사이트 URL 도출은 `lib/seo` 한 곳에서만 한다(T6.4)
+const siteUrl = resolveSiteUrl();
+const metadataBase = siteUrlObject();
 
 /** metadata 와 페이지가 같은 요청에서 DB 를 두 번 읽지 않게 한다(T1.8 과 같은 방식) */
 const getListing = cache((id: string) => getPublicListing(id));
