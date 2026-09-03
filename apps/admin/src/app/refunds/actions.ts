@@ -15,10 +15,19 @@
  * (`apps/web/src/features/refund/ownership.ts` 참고). 어드민 로그인이 붙으면(T6.3)
  * 이 파일은 세션 쿠키를 전달하는 것으로 바뀐다.
  *
+
+ * ## 어드민 로그인이 붙었다 (T6.3)
+ *
+ * 이 파일의 서버 액션은 **레이아웃 게이트를 거치지 않고도 POST 로 직접 불릴 수 있다.**
+ * 그래서 액션마다 첫 줄에서 `requireAdminGate()` 로 어드민 세션을 확인한다.
+ * web 호출 방식(서비스 시크릿)은 **그대로 두었다** — 시크릿은 신분이 아니라 통로의 자격이고,
+ * web 은 여전히 `isAdmin` 계정을 찾아 행위자로 기록한다(설계 근거는 `_shell/auth.ts`).
+ *
  * 필요한 환경변수(`.env.example` 의 크론 항목과 같은 값이면 된다):
  * - `ADMIN_API_SECRET` — 없으면 `CRON_SECRET` 을 쓴다(web 과 **같은 값**)
  * - `NEXT_PUBLIC_WEB_URL` — 호출할 web 앱 주소(로컬 기본값 http://localhost:3000)
  */
+import { requireAdminGate } from "../_shell/auth";
 import { resolveWebUrl } from "../cron/shared";
 import type { AdminRefundItem, QueueResult, ReviewActionResult } from "./shared";
 
@@ -80,6 +89,9 @@ async function callWeb(
 
 /** 심사 큐 조회 — 상태 필터는 web 의 `?status=` 쿼리로 넘긴다 */
 export async function fetchRefundQueue(statuses: string[]): Promise<QueueResult> {
+  const denied = await requireAdminGate();
+  if (denied) return denied;
+
   const query = new URLSearchParams({ scope: "review", status: statuses.join(",") });
   const result = await callWeb(`/api/refunds?${query.toString()}`, { method: "GET" });
   if (!result.ok) return result;
@@ -101,6 +113,9 @@ export async function runRefundReview(input: {
   action: string;
   note?: string;
 }): Promise<ReviewActionResult> {
+  const denied = await requireAdminGate();
+  if (denied) return denied;
+
   const result = await callWeb(`/api/refunds/${input.applicationId}/review`, {
     method: "POST",
     headers: { "content-type": "application/json" },

@@ -20,12 +20,32 @@ const cookieOptions = {
 
 export type SessionUser = User & { profiles: Profile[] };
 
-/** 세션 발급 — DB 레코드 생성 + httpOnly 쿠키 설정. */
-export async function createSession(userId: string): Promise<string> {
+/**
+ * 세션 토큰만 발급한다 — **쿠키를 건드리지 않는다** (T6.3).
+ *
+ * 어드민 앱(3001)은 web(3000)과 **다른 도메인**이라 web 이 구운 쿠키를 받을 수 없다.
+ * 그래서 어드민 로그인(`POST /api/admin/session`)은 토큰을 **응답 본문으로** 돌려주고,
+ * 어드민 서버가 그것을 자기 도메인 쿠키에 담는다. 세션의 실체(`Session` 레코드·TTL·판정)는
+ * 브라우저 로그인과 **완전히 같다** — 다른 인증 체계를 하나 더 만들지 않기 위해서다.
+ */
+export async function issueSessionToken(
+  userId: string,
+): Promise<{ token: string; expiresAt: Date }> {
   const token = crypto.randomUUID().replaceAll("-", "") + crypto.randomUUID().replaceAll("-", "");
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
 
   await prisma.session.create({ data: { token, userId, expiresAt } });
+  return { token, expiresAt };
+}
+
+/** 토큰 하나를 폐기한다 — 쿠키를 못 지우는 곳(어드민 로그아웃)에서 쓴다. 없어도 조용히 넘어간다. */
+export async function revokeSessionToken(token: string): Promise<void> {
+  await prisma.session.deleteMany({ where: { token } });
+}
+
+/** 세션 발급 — DB 레코드 생성 + httpOnly 쿠키 설정. */
+export async function createSession(userId: string): Promise<string> {
+  const { token, expiresAt } = await issueSessionToken(userId);
 
   const store = await cookies();
   store.set(SESSION_COOKIE, token, { ...cookieOptions, expires: expiresAt });

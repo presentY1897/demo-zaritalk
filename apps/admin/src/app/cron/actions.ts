@@ -11,7 +11,12 @@
  * - `NEXT_PUBLIC_WEB_URL` — 호출할 web 앱 주소(로컬 기본값 http://localhost:3000)
  *
  * `"use server"` 파일은 async 함수만 export 할 수 있다 — 상수·타입은 `./shared` 에 있다.
+ *
+ * **T6.3 어드민 로그인**: 이 액션은 레이아웃 게이트를 거치지 않고 직접 POST 될 수 있어
+ * 첫 줄에서 어드민 세션을 확인한다. 크론이 멱등이라 피해는 없었지만, "URL 만 알면 크론을
+ * 돌릴 수 있다"(T1.4 문서의 경고)는 상태를 여기서 닫는다.
  */
+import { requireAdminGate } from "../_shell/auth";
 import { resolveWebUrl, type DailyCronSummary, type TriggerCronResult } from "./shared";
 
 export async function getWebUrl(): Promise<string> {
@@ -20,6 +25,10 @@ export async function getWebUrl(): Promise<string> {
 
 export async function triggerDailyCron(): Promise<TriggerCronResult> {
   const url = `${resolveWebUrl(process.env.NEXT_PUBLIC_WEB_URL)}/api/cron/daily`;
+
+  const denied = await requireAdminGate();
+  if (denied) return { ...denied, url };
+
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {

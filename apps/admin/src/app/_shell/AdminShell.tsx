@@ -7,7 +7,9 @@
  */
 import type { ReactNode } from "react";
 import { css } from "styled-system/css";
+import { AdminIdentity } from "./AdminIdentity";
 import { AdminNav } from "./AdminNav";
+import type { AdminIdentity as AdminIdentityValue } from "./auth";
 
 const frameStyle = css({
   minH: "100dvh",
@@ -39,7 +41,14 @@ const brandTitleStyle = css({ textStyle: "subtitle", color: "text" });
 const brandDescStyle = css({ textStyle: "caption", color: "text.muted" });
 const contentStyle = css({ minW: "0", px: { base: "gutter", lg: "8" }, py: "8" });
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({
+  children,
+  admin,
+}: {
+  children: ReactNode;
+  /** 로그인한 관리자 (T6.3). 게이트를 통과했을 때만 넘어온다 */
+  admin?: AdminIdentityValue;
+}) {
   return (
     <div className={frameStyle}>
       <aside className={sidebarStyle}>
@@ -48,6 +57,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <span className={brandDescStyle}>운영자 전용</span>
         </div>
         <AdminNav />
+        {admin ? <AdminIdentity admin={admin} /> : null}
       </aside>
       <div className={contentStyle}>{children}</div>
     </div>
