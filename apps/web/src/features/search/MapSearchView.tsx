@@ -291,7 +291,13 @@ function errorMessage(error: unknown): string {
   return "매물을 불러오지 못했습니다.";
 }
 
-/** 통근 배지 — **T3.5 가 채운다.** 캐시 히트분만 켜지고, 그 전에는 자리만 지킨다 */
+/**
+ * 통근 배지 — **캐시 히트분만** 켜진다. 여기서 외부 API 를 부르지 않는다.
+ *
+ * 값을 만드는 곳은 매물 상세의 「내 근무지까지」 → `POST /api/commute`(T3.5) 한 곳이고,
+ * 목록은 그 결과를 재사용한다. 대중교통 값이 모의 제공자에서 왔으면(D9) 배지에 그 사실을
+ * 붙인다 — 실측으로 오해하면 매물 비교의 근거가 거짓이 된다.
+ */
 function CommuteBadge({ listing }: { listing: ListingSummaryDto }) {
   const commute = listing.commute;
   if (!commute) return null;
@@ -299,10 +305,12 @@ function CommuteBadge({ listing }: { listing: ListingSummaryDto }) {
   const minutes = commute.transitMinutes ?? commute.drivingMinutes;
   if (minutes === null) return null;
 
-  const mode = commute.transitMinutes !== null ? "대중교통" : "자동차";
+  const transit = commute.transitMinutes !== null;
+  const mocked = transit && commute.mockModes.includes("transit");
   return (
     <Badge tone="info" data-testid="listing-commute-badge">
-      {commute.workplaceLabel}까지 {mode} {minutes}분
+      {commute.workplaceLabel}까지 {transit ? "대중교통" : "자동차"} {minutes}분
+      {mocked ? " (모의)" : ""}
     </Badge>
   );
 }
@@ -660,7 +668,7 @@ export function MapSearchView({
                 </option>
               ))}
             </select>
-            <span>통근시간 계산은 T3.5에서 붙습니다(지금은 저장된 값만 표시).</span>
+            <span>매물 상세에서 조회한 값이 배지로 붙습니다.</span>
           </div>
         ) : null}
 

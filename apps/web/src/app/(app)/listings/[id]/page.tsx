@@ -374,6 +374,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
         <div className={actionsStyle}>
           <ListingCommuteButton
             listingId={listing.id}
+            unitId={listing.unitId}
             loggedIn={Boolean(user)}
             workplaces={workplaces}
             commutes={commutes}

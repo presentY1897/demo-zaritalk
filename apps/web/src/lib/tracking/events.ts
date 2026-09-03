@@ -158,6 +158,10 @@ export const TRACK_EVENTS = {
   LISTING_INQUIRY_CLICK: "listing_inquiry_click",
   /** 「내 근무지까지」 클릭 — props: `{ listingId, state }` (T3.3, 계산은 T3.5) */
   LISTING_COMMUTE_CLICK: "listing_commute_click",
+  /** 통근시간 조회 성공 — props: `{ unitId, workplaceId, transitMinutes, drivingMinutes, cached, mocked }` (T3.5) */
+  COMMUTE_LOOKUP_COMPLETE: "commute_lookup_complete",
+  /** 통근시간 조회 실패 — props: `{ unitId, workplaceId, code }` (T3.5) */
+  COMMUTE_LOOKUP_FAIL: "commute_lookup_fail",
   /** 근무지 등록 성공 — props: `{ workplaceId, total }` (T3.4) */
   WORKPLACE_CREATE_COMPLETE: "workplace_create_complete",
   /** 근무지 삭제 성공 — props: `{ workplaceId, total }` (T3.4) */

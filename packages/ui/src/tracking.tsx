@@ -105,6 +105,8 @@ export type KnownTrackEventName =
   | "listing_detail_view"
   | "listing_inquiry_click"
   | "listing_commute_click"
+  | "commute_lookup_complete"
+  | "commute_lookup_fail"
   | "workplace_create_complete"
   | "workplace_delete_complete"
   | "deals_list_view"

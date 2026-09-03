@@ -11,12 +11,14 @@
  * |---|---|
  * | `ListingDetailTracker` | 화면 노출 1회 `listing_detail_view` |
  * | `ListingInquiryButton` | 문의 시트(더미) — 실제 발송은 없다 |
- * | `ListingCommuteButton` | 「내 근무지까지」 — **[T3.5](../../../../docs/tasks/t3.5-commute.md) 자리** |
+ * | `ListingCommuteButton` | 「내 근무지까지」 — 시트에서 근무지별 통근시간을 조회한다([T3.5](../../../../docs/tasks/t3.5-commute.md)) |
  */
 import { Badge, Button, Sheet, useTrack } from "@zari/ui";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { css } from "styled-system/css";
+import { ApiError } from "@/features/auth/api";
+import { lookupCommute } from "@/features/commute/api";
 import type { WorkplaceDto } from "@/features/workplace/types";
 import { TRACK_EVENTS } from "@/lib/tracking/events";
 import type { DealTypeValue, ListingCommuteDto, ListingStatusValue } from "./types";
@@ -36,8 +38,7 @@ const warnStyle = css({ textStyle: "caption", color: "warning.text", mt: "3" });
 const listStyle = css({ display: "flex", flexDirection: "column", gap: "2" });
 const itemStyle = css({
   display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
+  flexDirection: "column",
   gap: "2",
   px: "3",
   py: "2.5",
@@ -46,6 +47,17 @@ const itemStyle = css({
   textStyle: "body",
   color: "text",
 });
+const itemHeadStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "2",
+  minH: "32px",
+});
+const itemLabelStyle = css({ minW: "0", wordBreak: "break-word" });
+const badgeRowStyle = css({ display: "flex", flexWrap: "wrap", gap: "1.5" });
+const itemNoteStyle = css({ textStyle: "caption", color: "text.muted" });
+const itemErrorStyle = css({ textStyle: "caption", color: "danger.text" });
 const linkButtonStyle = css({ textDecoration: "none", display: "block" });
 
 /* ------------------------------------------------------------------ */
@@ -151,41 +163,98 @@ export function ListingInquiryButton({
 
 /* ------------------------------------------------------------------ */
 
+
 export type ListingCommuteButtonProps = {
   listingId: string;
+  /** 캐시 키의 한쪽 — `POST /api/commute` 가 (호실, 근무지) 쌍으로 저장한다 (T3.5) */
+  unitId: string;
   loggedIn: boolean;
   /** 로그인 세입자의 근무지(T3.4). 비로그인·세입자 아님이면 빈 배열 */
   workplaces: WorkplaceDto[];
-  /** `CommuteCache` 에 이미 있는 값만. 지금은 언제나 비어 있다(T3.5 가 채운다) */
+  /** `CommuteCache` 에 **이미 있는 값**. 여기 없는 근무지는 시트에서 조회한다 */
   commutes: ListingCommuteDto[];
 };
 
+/** 조회한 시각을 "9월 3일 기준" 으로. 시트는 열린 뒤에만 렌더돼 하이드레이션 불일치가 없다 */
+function fetchedAtLabel(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getMonth() + 1}월 ${date.getDate()}일 기준`;
+}
+
 /**
- * 「내 근무지까지」 — **T3.5 가 실제 조회를 붙일 자리**다.
- *
- * 지금 하는 일은 세 갈래뿐이다.
+ * 「내 근무지까지」 (T3.3 자리 · T3.5 가 실제 조회를 붙였다).
  *
  * | 상태 | 버튼이 하는 일 |
  * |---|---|
  * | 비로그인 | `/login` 으로 (통근시간을 보려면 근무지가 필요하고 근무지는 계정에 붙는다) |
  * | 로그인·근무지 0곳 | `/tenant/workplaces` 로 (T3.4 화면) |
- * | 로그인·근무지 있음 | 시트를 열어 근무지별 **캐시된 값**을 보여 준다 |
+ * | 로그인·근무지 있음 | 시트를 열어 근무지별 값을 보여 주고, 없으면 **행마다 「조회」** |
  *
- * **외부 API 를 부르지 않는다.** T3.5 가 `POST /api/commute` 를 붙이면 시트의
- * 「조회하기」 자리(지금은 안내 문구)가 그 호출로 바뀌고, 결과는 같은 `ListingCommuteDto`
- * 모양으로 이 컴포넌트에 그대로 들어온다.
+ * ## 왜 시트를 열 때 한꺼번에 조회하지 않나
+ *
+ * 조회 한 번이 **외부 API 호출**이다(자동차는 카카오모빌리티 실호출). 근무지가 5곳이면 시트를
+ * 여는 것만으로 5번이 나간다. 그래서 **사용자가 누른 근무지만** 부른다 — 대부분 근무지가
+ * 한 곳이라 클릭 한 번이고, 한 번 조회한 값은 `CommuteCache` 에 남아 목록 배지로 재사용된다.
+ *
+ * ## 실패해도 시트는 살아 있다
+ *
+ * 한쪽 이동수단만 실패하면 나머지 값이 그대로 뜨고(`transitMinutes`·`drivingMinutes` 각각 null
+ * 허용), 둘 다 실패하면 그 행에만 문구가 붙는다. 다른 근무지 행과 화면 전체는 그대로다.
  */
 export function ListingCommuteButton({
   listingId,
+  unitId,
   loggedIn,
   workplaces,
   commutes,
 }: ListingCommuteButtonProps) {
   const { track } = useTrack();
   const [open, setOpen] = useState(false);
+  /** 서버가 준 캐시 + 이 시트에서 새로 조회한 값 */
+  const [results, setResults] = useState<Record<string, ListingCommuteDto>>(() =>
+    Object.fromEntries(commutes.map((commute) => [commute.workplaceId, commute])),
+  );
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const state = !loggedIn ? "anonymous" : workplaces.length === 0 ? "no-workplace" : "ready";
-  const byWorkplace = new Map(commutes.map((commute) => [commute.workplaceId, commute]));
+
+  const request = useCallback(
+    async (workplaceId: string) => {
+      setPending((prev) => ({ ...prev, [workplaceId]: true }));
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[workplaceId];
+        return next;
+      });
+
+      try {
+        const response = await lookupCommute({ unitId, workplaceId });
+        setResults((prev) => ({ ...prev, [workplaceId]: response.commute }));
+        track(TRACK_EVENTS.COMMUTE_LOOKUP_COMPLETE, {
+          unitId,
+          workplaceId,
+          transitMinutes: response.commute.transitMinutes,
+          drivingMinutes: response.commute.drivingMinutes,
+          cached: response.cached,
+          mocked: response.commute.mockModes,
+        });
+      } catch (error) {
+        const message =
+          error instanceof ApiError ? error.message : "통근시간을 불러오지 못했습니다.";
+        setErrors((prev) => ({ ...prev, [workplaceId]: message }));
+        track(TRACK_EVENTS.COMMUTE_LOOKUP_FAIL, {
+          unitId,
+          workplaceId,
+          code: error instanceof ApiError ? error.code : "NETWORK",
+        });
+      } finally {
+        setPending((prev) => ({ ...prev, [workplaceId]: false }));
+      }
+    },
+    [track, unitId],
+  );
 
   if (state !== "ready") {
     const href =
@@ -238,32 +307,71 @@ export function ListingCommuteButton({
       >
         <div className={listStyle}>
           {workplaces.map((workplace) => {
-            const commute = byWorkplace.get(workplace.id);
-            const minutes = commute?.transitMinutes ?? commute?.drivingMinutes ?? null;
+            const commute = results[workplace.id];
+            const loading = pending[workplace.id] === true;
+            const error = errors[workplace.id];
+            const transitMocked = commute?.mockModes.includes("transit") ?? false;
+
             return (
               <div
                 key={workplace.id}
                 className={itemStyle}
                 data-testid="listing-commute-workplace"
                 data-workplace-id={workplace.id}
+                data-commute-loaded={commute ? "true" : "false"}
               >
-                <span>{workplace.label}</span>
-                {minutes === null ? (
-                  <Badge tone="neutral">아직 조회 전</Badge>
-                ) : (
-                  <Badge tone="info">
-                    {commute?.transitMinutes !== null && commute?.transitMinutes !== undefined
-                      ? "대중교통"
-                      : "자동차"}{" "}
-                    {minutes}분
-                  </Badge>
-                )}
+                <div className={itemHeadStyle}>
+                  <span className={itemLabelStyle}>{workplace.label}</span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    loading={loading}
+                    onClick={() => void request(workplace.id)}
+                    data-testid="listing-commute-fetch"
+                  >
+                    {commute ? "다시 조회" : "조회"}
+                  </Button>
+                </div>
+
+                {commute ? (
+                  <>
+                    <div className={badgeRowStyle} data-testid="listing-commute-result">
+                      {commute.transitMinutes === null ? (
+                        <Badge tone="neutral">대중교통 조회 실패</Badge>
+                      ) : (
+                        <Badge tone="info" data-testid="listing-commute-transit">
+                          대중교통 {commute.transitMinutes}분
+                        </Badge>
+                      )}
+                      {commute.drivingMinutes === null ? (
+                        <Badge tone="neutral">자동차 조회 실패</Badge>
+                      ) : (
+                        <Badge tone="info" data-testid="listing-commute-driving">
+                          자동차 {commute.drivingMinutes}분
+                        </Badge>
+                      )}
+                      {transitMocked ? (
+                        <Badge tone="warning" data-testid="listing-commute-mock">
+                          대중교통 모의값
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <p className={itemNoteStyle}>{fetchedAtLabel(commute.fetchedAt)}</p>
+                  </>
+                ) : null}
+
+                {error ? (
+                  <p className={itemErrorStyle} role="alert" data-testid="listing-commute-error">
+                    {error}
+                  </p>
+                ) : null}
               </div>
             );
           })}
         </div>
         <p className={noteStyle}>
-          통근시간 조회는 T3.5에서 붙습니다. 지금은 이미 저장된 값만 보여 줍니다.
+          자동차는 카카오모빌리티 실시간 경로, 대중교통은 거리 기반 모의 추정값입니다(ODsay 미연동).
+          조회한 값은 저장돼 매물 목록의 통근 배지로도 쓰입니다.
         </p>
       </Sheet>
     </>

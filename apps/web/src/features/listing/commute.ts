@@ -1,5 +1,5 @@
 /**
- * 통근 배지 자리 (T3.2·T3.3) — **서버 전용**. [T3.5](../../../../docs/tasks/t3.5-commute.md) 가 채운다.
+ * 통근 배지 자리 (T3.2·T3.3) — **서버 전용**. [T3.5](../../../../docs/tasks/t3.5-commute.md) 가 채웠다.
  *
  * ## 여기가 하는 일과 하지 않는 일
  *
@@ -9,9 +9,10 @@
  * | 그 근무지가 **내 것인지** 판정한다 | `CommuteCache` upsert |
  * | 캐시가 없으면 `null` 을 준다 | 없다고 계산을 시작하는 것 |
  *
- * 지금은 캐시를 만드는 곳이 없어(`POST /api/commute` 가 T3.5 소유) 언제나 `null` 이다.
- * 그래도 **배선과 화면은 완성**돼 있다 — T3.5 가 캐시 행을 쓰기 시작하면 목록 배지와
- * 상세 버튼이 코드 변경 없이 켜진다. 테스트는 캐시 행을 직접 넣어 그 경로를 검증한다.
+ * 캐시를 만드는 곳은 **`POST /api/commute`(T3.5)** 한 곳뿐이다. 여기는 여전히 읽기 전용이고,
+ * T3.5 가 캐시 행을 쓰기 시작하면서 목록 배지와 상세 시트가 **이 파일을 고치지 않고** 켜졌다.
+ * 행 → DTO 변환은 T3.5 의 `features/commute/cache.ts` 에 있는 `toCommuteDto` 한 곳에서 온다 —
+ * 캐시에서 읽은 배지와 조회 직후 응답이 같은 모양이어야 하기 때문이다.
  *
  * ## 왜 "조용히 무시" 인가
  *
@@ -20,6 +21,7 @@
  * 응답의 `commuteWorkplaceId` 로 "반영됐는지" 만 알려 준다.
  */
 import { prisma } from "@zari/db";
+import { toCommuteDto } from "@/features/commute/cache";
 import { findTenantProfile } from "@/features/tenant/ownership";
 import { getCurrentUser } from "@/lib/auth/session";
 import type { ListingCommuteDto } from "./types";
@@ -58,13 +60,7 @@ export async function readCommuteCache(
     where: { workplaceId: workplace.id, unitId: { in: [...unitIds] } },
   });
   for (const row of rows) {
-    result.set(row.unitId, {
-      workplaceId: workplace.id,
-      workplaceLabel: workplace.label,
-      transitMinutes: row.transitMinutes,
-      drivingMinutes: row.drivingMinutes,
-      fetchedAt: row.fetchedAt.toISOString(),
-    });
+    result.set(row.unitId, toCommuteDto(row, workplace.label));
   }
   return result;
 }
@@ -84,13 +80,7 @@ export async function readUnitCommutes(
     where: { unitId, workplaceId: { in: [...labels.keys()] } },
   });
 
-  return rows.map((row) => ({
-    workplaceId: row.workplaceId,
-    workplaceLabel: labels.get(row.workplaceId) ?? "",
-    transitMinutes: row.transitMinutes,
-    drivingMinutes: row.drivingMinutes,
-    fetchedAt: row.fetchedAt.toISOString(),
-  }));
+  return rows.map((row) => toCommuteDto(row, labels.get(row.workplaceId) ?? ""));
 }
 
 /** 매물 상세용 — 호실 하나치 */

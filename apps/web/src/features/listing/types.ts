@@ -70,12 +70,12 @@ export type ListingPageDto = {
 };
 
 /**
- * 통근시간 배지 — **[T3.5](../../../../docs/tasks/t3.5-commute.md) 가 채운다.**
+ * 통근시간 배지 — T3.2·T3.3 이 모양을 정하고 **[T3.5](../../../../docs/tasks/t3.5-commute.md) 가 채운다.**
  *
- * T3.2·T3.3 은 `CommuteCache` 에 **이미 있는 행만 읽어** 배지/버튼 자리에 흘려보낸다.
- * 외부 API 를 부르지도, 캐시를 만들지도 않는다(그 일은 `POST /api/commute` 소유).
- * 지금은 캐시를 채우는 곳이 없어 언제나 `null` 이지만, 배선과 화면은 이미 완성돼 있어
- * T3.5 가 캐시를 쓰기 시작하면 **코드 변경 없이** 배지가 켜진다.
+ * T3.2·T3.3 은 `CommuteCache` 에 **이미 있는 행만 읽어** 배지/버튼 자리에 흘려보낸다
+ * (외부 API 를 부르지도, 캐시를 만들지도 않는다 — 그 일은 `POST /api/commute` 소유).
+ * T3.5 가 그 캐시를 채우기 시작하면서 배지가 켜졌고, **응답 모양은 그대로 두고**
+ * `mockModes` 한 칸만 더했다 — 대중교통이 모의라(D9) 화면이 그 사실을 밝혀야 한다.
  */
 export type ListingCommuteDto = {
   workplaceId: string;
@@ -87,6 +87,13 @@ export type ListingCommuteDto = {
   drivingMinutes: number | null;
   /** 캐시에 담긴 시각(ISO) — "언제 기준" 인지 화면에 밝힌다 */
   fetchedAt: string;
+  /**
+   * **모의 제공자로 채운 이동수단** (T3.5 · [D9](../../../../docs/DECISIONS.md)).
+   * 지금은 대중교통이 모의라 `["transit"]` 이고, ODsay 를 붙이면 빈 배열이 된다.
+   * 값이 없는 칸(조회 실패)은 담지 않는다. `CommuteMode`(`features/commute/types.ts`)와
+   * 같은 유니온이어야 하고, 어긋나면 그쪽 파일에서 컴파일이 깨진다.
+   */
+  mockModes: ("transit" | "car")[];
 };
 
 /** 공개 화면(`/search`·`/listings/[id]`)이 쓰는 호실 정보 */
